@@ -9,6 +9,7 @@ No JSON storage file, real app socket, Apple item, or notification is modified.
 """
 
 import argparse
+from datetime import datetime
 import json
 import pathlib
 import subprocess
@@ -89,7 +90,7 @@ class PreviewSuite:
         self.check(status.get("protocolVersion") == 1, "protocol version 1")
         self.safe_to_write = True
         capabilities = self.read("capabilities")
-        self.check({"chart.show", "context.day", "tasks.show", "insights.show"}.issubset(
+        self.check({"chart.show", "context.day", "tasks.show", "insights.show", "strength.show", "hexagrams.show"}.issubset(
             capabilities["readMethods"]), "capabilities expose structured reading methods")
         self.check(capabilities["appleWrites"] is False, "CLI declares local-only mutations")
 
@@ -128,8 +129,38 @@ class PreviewSuite:
         self.check(len(calendar["almanac"]["hours"]) == 13, "almanac preserves both partial Zi-hour segments")
         self.check(bool(calendar["almanac"]["sourceURL"]), "almanac includes source attribution")
         context = self.read("context", {"profile": profile_id, "date": self.date})
-        self.check(context["strengthBasis"]["source"] == "undetermined",
-                   "no unsupported automatic strength conclusion")
+        self.check(context["strengthBasis"]["source"] == "local_rule",
+                   "personal context defaults to versioned local strength rules")
+        strength = self.read("strength.show", {"profile": profile_id})
+        native_strength = strength["report"]
+        self.check(native_strength == context["nativeStrength"]
+                   and strength["strengthBasis"] == context["strengthBasis"],
+                   "strength command and daily context share the same report and precedence")
+        self.check(bool(native_strength["ruleVersion"])
+                   and native_strength["ruleVersion"] == context["strengthBasis"]["ruleVersion"]
+                   and {"month", "stems", "roots", "support", "drain"}.issubset(
+                       {entry["id"] for entry in native_strength["evidence"]})
+                   and all(entry["observations"] and entry["ruleNote"] for entry in native_strength["evidence"]),
+                   "local strength report carries versioned month, stems, roots, support and drain evidence")
+        self.check(context["personalReading"]["strength"] == native_strength["assessment"],
+                   "daily interpretation uses the actual local assessment, including undetermined results")
+        initial_hexagrams = self.read("hexagrams.show", {"profile": profile_id, "date": self.date})
+        self.check(initial_hexagrams["profile"]["revision"] == profile_revision
+                   and initial_hexagrams["hexagrams"] == context["hexagrams"],
+                   "hexagrams command and context share deterministic facts and profile revision")
+        gua = initial_hexagrams["hexagrams"]
+        marked_gua = [gua["xianTian"], gua["houTian"]] + [gua[key]["marked"] for key in ["year", "month", "day"]]
+        self.check(all(1 <= item["hexagram"]["number"] <= 64
+                       and len(item["hexagram"]["lines"]) == 6
+                       and all(type(line) is bool for line in item["hexagram"]["lines"])
+                       and 1 <= item["linePosition"] <= 6 for item in marked_gua),
+                   "natal and year/month/day hexagrams all carry six ordered lines and marked positions")
+        instant = datetime.fromisoformat(gua["instant"].replace("Z", "+00:00"))
+        self.check(all(datetime.fromisoformat(gua[key]["start"].replace("Z", "+00:00")) <= instant
+                       < datetime.fromisoformat(gua[key]["end"].replace("Z", "+00:00"))
+                       for key in ["year", "month", "day"])
+                   and len(gua["lifeSegments"]) == 12 and bool(gua["methodNotes"]),
+                   "hexagrams expose containing half-open periods, life segments and rule notes")
         self.check({p["period"] for p in context["personalReading"]["periods"]} == {"year", "month", "day"},
                    "personal context includes year, month and day relationships")
 
@@ -244,6 +275,29 @@ class PreviewSuite:
         }, error="missing_field")
         self.check(self.read("profiles.show", {"id": unknown["id"]})["profile"]["birthTimeKnown"] is False,
                    "unknown-to-known update requires explicit birth hour and minute")
+        unavailable = self.request("hexagrams.show", {"profile": unknown["id"], "date": self.date},
+                                   error="hexagrams_unavailable")
+        unknown_context = self.read("context", {"profile": unknown["id"], "date": self.date})
+        self.check("出生时刻" in unavailable["error"]["message"]
+                   and unknown_context["hexagrams"] is None
+                   and bool(unknown_context["hexagramsUnavailable"])
+                   and unknown_context["nativeStrength"]["assessment"] == "unspecified",
+                   "unknown birth time produces explicit unavailable hexagrams and undecided strength")
+        no_gender = self.write("profiles.create", dict(profile_input, name="合成未填排盘性别", luckGender=None))
+        unavailable = self.request("hexagrams.show", {"profile": no_gender["id"], "date": self.date},
+                                   error="hexagrams_unavailable")
+        gender_context = self.read("context", {"profile": no_gender["id"], "date": self.date})
+        self.check("性别" in unavailable["error"]["message"]
+                   and gender_context["hexagrams"] is None
+                   and "性别" in gender_context["hexagramsUnavailable"],
+                   "missing gender is never guessed for personal hexagrams")
+        for invalid in ["2026-02-30", "2026-9-20", "2026-09-20junk", "2100-01-01"]:
+            self.request("hexagrams.show", {"profile": profile_id, "date": invalid},
+                         error={"invalid_date", "invalid_request"})
+        for invalid in ["24:00", "9:00", "12:60", "12:00junk"]:
+            self.request("hexagrams.show", {"profile": profile_id, "date": self.date, "at": invalid},
+                         error="invalid_time")
+        self.check(True, "hexagram queries enforce real supported dates and strict clock syntax")
 
         for invalid in ["2026-02-30", "2026-9-20", "2026-09-20junk"]:
             self.request("calendar.day", {"date": invalid}, error={"invalid_date", "invalid_request"})
@@ -260,14 +314,19 @@ class PreviewSuite:
         self.check(True, "create rejects caller-supplied identity and revision controls")
 
         changed = self.write("profiles.update", {
-            "id": profile_id, "revision": profile_revision, "birthMinute": 31,
+            "id": profile_id, "revision": profile_revision, "birthHour": 15, "birthMinute": 31,
         })
         self.check(self.read("insights.show", {"id": insight_id})["stale"] is True,
                    "birth profile changes mark old analysis stale")
         context = self.read("context", {"profile": profile_id, "date": self.date})
-        self.check(context["strengthBasis"]["source"] == "undetermined"
-                   and context["personalReading"]["strength"] == "unspecified",
-                   "stale analysis no longer drives personal strength context")
+        self.check(context["strengthBasis"]["source"] == "local_rule"
+                   and context["personalReading"]["strength"] == context["nativeStrength"]["assessment"],
+                   "stale Agent analysis falls back to recomputed local rules")
+        changed_hexagrams = self.read("hexagrams.show", {"profile": profile_id, "date": self.date})
+        self.check(changed_hexagrams["profile"]["revision"] == changed["revision"]
+                   and changed_hexagrams["hexagrams"] == context["hexagrams"]
+                   and changed_hexagrams["hexagrams"]["xianTian"] != initial_hexagrams["hexagrams"]["xianTian"],
+                   "changing the birth-hour branch recomputes personal hexagrams without stale cache")
         self.request("insights.save", dict(insight_input, title="过期档案分析"), error="profile_revision_conflict")
         revised_input = dict(insight_input, id=insight_id, revision=insight["revision"],
                              profileRevision=changed["revision"], body="合成资料更新后的证据。")

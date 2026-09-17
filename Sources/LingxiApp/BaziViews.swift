@@ -2,7 +2,7 @@ import SwiftUI
 import LingxiCore
 
 enum BaziPage: String, CaseIterable, Identifiable {
-    case natal = "我的命盘", luck = "大运流年", daily = "每日解读", almanac = "黄历时辰"
+    case natal = "我的命盘", luck = "大运流年", daily = "每日解读", hexagrams = "我的卦象", almanac = "黄历时辰"
     var id: String { rawValue }
 }
 
@@ -63,6 +63,9 @@ struct BaziWorkspaceView: View {
                         Card { Text(profiles.activeProfile == nil ? "建立个人档案，让这一天的干支与你的日主联系起来。" : "出生资料或参考时刻尚未形成唯一命盘；请核对上面的提示，再查看个人解读。")
                             .font(.system(size: 12)).foregroundStyle(Theme.secondary) }
                     }
+                case .hexagrams:
+                    if let profile = profiles.activeProfile { PersonalHexagramsWorkspace(store: store, profile: profile) }
+                    else { Card { Text("建立出生档案后，可查看先天、后天与年月日卦。河洛卦需要完整出生时刻和排盘性别。") } }
                 case .almanac: AlmanacWorkspaceView(store: store)
                 }
                 HStack(alignment: .top, spacing: 10) {
@@ -209,28 +212,7 @@ struct BaziWorkspaceView: View {
     }
 
     private func strengthCard(_ profile: BirthProfile) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("我的旺衰分析").font(.system(size: 17, weight: .medium, design: .serif))
-                    Spacer(); Pill(text: store.strength(for: profile).label)
-                }
-                Text(store.strengthSource(for: profile)).font(.system(size: 11)).foregroundStyle(Theme.secondary)
-                if let note = store.dayNotes.latestAssessment(for: profile) {
-                    Text(note.title).font(.system(size: 13, weight: .medium))
-                    Text(note.body).font(.system(size: 12)).lineSpacing(4).lineLimit(3)
-                    HStack {
-                        Text("与当前出生资料一致 · " + DateText.format(note.updatedAt, "M月d日 HH:mm")).font(.system(size: 10)).foregroundStyle(Theme.secondary)
-                        Spacer()
-                        Button("查看分析依据") { store.open(note: note) }.buttonStyle(QuietButton()).font(.system(size: 11))
-                    }
-                } else {
-                    Text("让自己的 Agent 结合命盘、月令和知识资料分析，再将依据保存到日笺。资料变更后，旧结论会退出每日解读，等待重新分析。")
-                        .font(.system(size: 12)).foregroundStyle(Theme.secondary).lineSpacing(4)
-                    Button("连接自己的 Agent") { store.showingAutomation = true }.buttonStyle(QuietButton()).font(.system(size: 11))
-                }
-            }
-        }
+        StrengthAnalysisCard(store: store, profile: profile)
     }
 
     private func profileDescription(_ profile: BirthProfile) -> String {

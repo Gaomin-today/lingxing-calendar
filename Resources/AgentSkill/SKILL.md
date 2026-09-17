@@ -1,6 +1,6 @@
 ---
 name: lingxi-calendar
-description: 使用本机灵性日历 CLI 查询个人档案、准确命盘、大运和每日历法，结合内置知识解释，并按用户要求保存日笺、日记或操作日程。适用于用户希望自己的 Agent 使用灵性日历资料和功能时。
+description: 使用本机灵性日历 CLI 查询个人档案、命盘、大运、旺衰初判、河洛卦和每日历法，结合内置知识解释，并按用户要求保存日笺、日记或操作日程。适用于用户希望自己的 Agent 使用灵性日历资料和功能时。
 ---
 
 # 灵性日历
@@ -12,17 +12,22 @@ description: 使用本机灵性日历 CLI 查询个人档案、准确命盘、�
 1. 使用用户提供的 `lingxi` 路径；已加入 PATH 时直接运行 `lingxi status` 和 `lingxi capabilities`。CLI 也随 `.app` 放在 `Contents/MacOS/lingxi`，`lingxi skill path` 返回本 Skill 所在目录。以当前返回的能力、参数和版本为准。
 2. 若应用未运行，说明需要打开灵性日历后继续。用 `--preview` 的请求只连接预览应用；测试全过程保持该选项，不退回正式数据。
 3. 从 `profiles list` 选择用户指定的档案，再用 `profiles show --profile UUID` 读取当前资料和版本。多个档案且无法从请求确定对象时才询问，不以姓名猜测出生信息。
-4. 只读取任务需要的内容。个人日期分析通常从 `context --profile UUID --date YYYY-MM-DD` 开始；仅查询黄历无需先取个人档案。日记正文按任务需要另行读取。
+4. 只读取任务需要的内容。个人日期分析通常从 `context --profile UUID --date YYYY-MM-DD` 开始；任务指定参考时分时保留 `--at HH:mm`，不要回退到默认正午。仅查询黄历无需先取个人档案。日记正文按任务需要另行读取。
+
+应用「交给我的 Agent」提供的是待执行任务文本。收到后重新读取目标对象与当前版本，不把用户点击复制当作已经查询、分析或保存成功。任务中选择仅解释时，不自行增加日笺写入。
 
 ## 先查事实，再解释
 
-- 四柱、节气、农历、十神、合冲和大运必须来自 CLI 结果。不要凭记忆补造干支，不用公历年份替代立春流年，不用黄历整日标签替代精确交节时刻。
+- 四柱、节气、农历、十神、合冲、大运和河洛卦必须来自 CLI 结果。不要凭记忆补造干支，不用公历年份替代立春流年，不用黄历整日标签替代精确交节时刻。
 - 保留返回的时区、换日规则、参考时刻、未知时柱和候选盘。存在多个出生候选时，分别描述共有信息与差异，不任选一盘做唯一结论。缺少排运资料时，不编造大运。
-- 通过 `knowledge search --query 关键词`、`knowledge read --id 条目ID` 按需读取解释依据。命盘及旺衰先读 `chart-conventions`、`strength-analysis`；个人某日读 `daily-reading`；黄历节气读 `calendar-and-almanac`；日程与日记读 `planning-and-journal`。
+- 通过 `knowledge search --query 关键词`、`knowledge read --id 条目ID` 按需读取解释依据。命盘及旺衰先读 `chart-conventions`、`strength-analysis`；河洛卦读 `heluo-guide`；个人某日读 `daily-reading`；黄历节气读 `calendar-and-almanac`；日程与日记读 `planning-and-journal`。
 - 用户在应用中添加的本机技能目录也可由 `knowledge search` 发现，按返回的 ID 和分页继续读取所需文件。它们保留原始来源；读取 Python 源码不代表已执行脚本或完成验证。若原 Skill 使用不同真太阳时、换日或时区设置，先说明差异，不用其示例覆写应用盘面。
 - 旺衰分析应能指出具体柱位、月令、根气和相反证据。可得出偏强、偏弱或未定；不把五行数量、简单加权分数或一种神煞当完整论证。将分析结论保存为解读，保留其口径和档案版本；不擅自改用户手选的解读假设。
-- `context` 的 `strengthBasis` 说明每日解读采用的前提。档案手选偏强／偏弱优先；没有手动覆盖时应用采用最新且档案版本一致的 Agent 旺衰分析。根据其 `noteID` 按需读取依据，过期分析不继续作为当前结论。分析未定也可以保存，不必强行二选一。
+- `strength show --profile UUID` 返回本地普通扶抑 `report`，`context` 中同一报告叫 `nativeStrength`；保留证据、反证、缺项和规则版本，不把它当成自动喜用神判断。`strengthBasis` 才是每日解读实际采用的前提，优先级为档案手选 `profile_override` > 有效 Agent 分析 `agent_insight` > 本地初判 `local_rule`。Agent 分析须与当前档案版本一致，可根据 `noteID` 读取依据；有效 Agent 结论为 `unspecified` 时保留未定，不再退回本地结论。
+- 河洛用 `hexagrams show --profile UUID --date YYYY-MM-DD --at HH:mm` 或已有 `context.hexagrams`。查询时分是 Asia/Shanghai；报告中的日卦按出生档案时区零点换日，独立于八字 23 点换日规则。保留有效区间、缺项和覆盖范围，交节当天可能有两段不同结果。原参考脚本与应用的跨年、交节边界不同，以应用报告口径为准，不声称原件所有行为均已验证或原样迁入。
 - 将历法事实、传统解释和现代行动建议区分清楚。对“可能意味着什么”的回答以反思角度和条件性解释表达，不承诺事件、健康、财务或关系结果。
+
+灵宠五行标签、最多两项筛选偏好和单／双色主题都是手动外观选择，不是已计算的喜用神，也不构成命盘证据。不要因用户选择某种颜色就反推旺衰或喜忌。
 
 ## 完成用户交代的操作
 

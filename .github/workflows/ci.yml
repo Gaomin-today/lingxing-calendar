@@ -1,0 +1,59 @@
+name: macOS CI
+
+"on":
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: macOS build and tests
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      # Available in the official macos-15 image; avoids changing Swift versions
+      # when that image's default Xcode changes.
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    defaults:
+      run:
+        shell: zsh {0}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify toolchain
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          swift --version
+
+      - name: Run core and CLI unit tests
+        run: zsh scripts/test.sh
+
+      - name: Verify Apple date conversion without calendar access
+        run: zsh scripts/test-apple-codec.sh
+
+      - name: Build release application and bundled CLI
+        run: zsh scripts/build-app.sh
+
+      - name: Verify application structure and ad-hoc signatures
+        run: |
+          set -euo pipefail
+          APP="$PWD/build/灵性日历.app"
+          test -x "$APP/Contents/MacOS/LingxingCalendar"
+          test -x "$APP/Contents/MacOS/lingxi"
+          test -f "$APP/Contents/Resources/AgentSkill/SKILL.md"
+          test -d "$APP/Contents/Resources/Knowledge"
+          plutil -lint "$APP/Contents/Info.plist"
+          codesign --verify --strict --verbose=2 "$APP/Contents/MacOS/lingxi"
+          codesign --verify --deep --strict --verbose=2 "$APP"

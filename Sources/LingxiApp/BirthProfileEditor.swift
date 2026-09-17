@@ -216,7 +216,7 @@ struct BirthProfileEditor: View {
                     Picker("旺衰解读前提", selection: Binding(get: { draft.strengthAssumption ?? .unspecified }, set: { draft.strengthAssumption = $0 })) {
                         ForEach(BaziStrengthAssumption.allCases) { Text($0.label).tag($0) }
                     }.pickerStyle(.segmented).padding(.top, 10)
-                    Text("通常无需填写。保持未确定时，会采用与你当前档案匹配的最新 Agent 分析；手动指定身强或身弱将优先使用此处设定。")
+                    Text("通常无需填写。保持未确定时，优先采用与你当前档案匹配的 Agent 分析，否则使用本地旺衰初判；手动指定身强或身弱将优先使用此处设定。")
                         .font(.system(size: 11)).foregroundStyle(Theme.secondary).padding(.top, 6)
                 }.font(.system(size: 12))
             }

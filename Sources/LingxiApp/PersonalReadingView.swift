@@ -25,7 +25,7 @@ struct PersonalReadingView: View {
                         Text(strengthSource).font(.system(size: 12, weight: .medium))
                         Spacer(); Pill(text: strength.label)
                     }
-                    Text(strength == .unspecified ? "先呈现确定的十神、月令与关系。让自己的 Agent 读取命盘、保存有依据的分析后，这里会自动采用；无需先猜身强或身弱。" : "使用与当前出生资料对应的解读前提。它属于传统分析，不等同于身体或心理强弱。")
+                    Text(strength == .unspecified ? "当前证据暂未形成明确倾向，先呈现确定的十神、月令与关系。上方可查看本地判断依据，也可交给自己的 Agent 深入复核。" : "使用与当前出生资料对应的解读前提。它属于传统分析，不等同于身体或心理强弱。")
                         .font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
                     DisclosureGroup("进阶：临时比较不同旺衰前提") {
                         Picker("本次阅读的旺衰前提", selection: $selection) {

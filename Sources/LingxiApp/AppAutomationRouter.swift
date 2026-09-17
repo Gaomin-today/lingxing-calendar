@@ -56,6 +56,15 @@ struct AutomationRouteError: Error {
                 "notesStorageError": optional(store.dayNotes.error)
             ])
         case "capabilities": return capabilities
+        case "strength.show":
+            let person = try profile(p)
+            return .object(["profile": try profileEnvelope(person), "report": try .from(store.nativeStrength(for: person)), "strengthBasis": try strengthBasis(person)])
+        case "hexagrams.show":
+            let person = try profile(p)
+            let clock = try referenceClock(p, person: person)
+            do {
+                return .object(["profile": try profileEnvelope(person), "hexagrams": try .from(store.personalHexagrams(for: person, at: clock.instant).get())])
+            } catch { throw problem("hexagrams_unavailable", error.localizedDescription) }
         case "profiles.list":
             try ensureReadable("profiles")
             return .object(["profiles": .array(try store.birthProfiles.profiles.map(profileEnvelope)), "activeProfileID": optional(store.birthProfiles.activeID?.uuidString)])
@@ -127,20 +136,24 @@ struct AutomationRouteError: Error {
         }
     }
 
-    private func dayContext(_ p: [String: JSONValue], includeEvents: Bool) async throws -> JSONValue {
+    private func referenceClock(_ p: [String: JSONValue], person: BirthProfile?) throws -> (text: String, date: Date, at: String, instant: Date) {
         let text = try required(p, "date"), date = try civilDate(text)
         let at = try p["at"].map { try string($0, "at") } ?? "12:00"
         let pieces = at.split(separator: ":", omittingEmptySubsequences: false)
         guard pieces.count == 2, pieces.allSatisfy({ $0.count == 2 && $0.allSatisfy({ $0 >= "0" && $0 <= "9" }) }),
               let hour = Int(pieces[0]), let minute = Int(pieces[1]), (0...23).contains(hour), (0...59).contains(minute) else { throw problem("invalid_time", "at 使用 00:00–23:59，默认为 12:00。") }
         let parts = store.calendar.gregorian.dateComponents([.year, .month, .day], from: date)
-        let pid = try optionalProfileID(p)
-        let person = try pid.map { id in try profile(["profile": .string(id.uuidString)]) }
         let clock = BirthProfile(birthYear: parts.year!, birthMonth: parts.month!, birthDay: parts.day!, birthHour: hour, birthMinute: minute, birthTimeKnown: true,
                                  timeZoneIdentifier: store.calendar.gregorian.timeZone.identifier, dayBoundary: person?.dayBoundary ?? .midnight)
         let instant = try clock.resolvedBirthDate()!
-        let flow = try FourPillarsEngine().chart(at: instant, timeZone: store.calendar.gregorian.timeZone, dayBoundary: clock.dayBoundary)
-        var result: [String: JSONValue] = ["date": .string(text), "referenceTime": .string(at), "timeZone": .string(clock.timeZoneIdentifier), "flowChart": AutomationFacts.chart(flow),
+        return (text, date, at, instant)
+    }
+    private func dayContext(_ p: [String: JSONValue], includeEvents: Bool) async throws -> JSONValue {
+        let pid = try optionalProfileID(p)
+        let person = try pid.map { id in try profile(["profile": .string(id.uuidString)]) }
+        let (text, date, at, instant) = try referenceClock(p, person: person)
+        let flow = try FourPillarsEngine().chart(at: instant, timeZone: store.calendar.gregorian.timeZone, dayBoundary: person?.dayBoundary ?? .midnight)
+        var result: [String: JSONValue] = ["date": .string(text), "referenceTime": .string(at), "timeZone": .string(store.calendar.gregorian.timeZone.identifier), "flowChart": AutomationFacts.chart(flow),
             "almanac": AutomationFacts.almanac(try AlmanacEngine.shared.day(on: date)), "snapshotAt": try .from(Date())]
         result["festivals"] = .array(store.calendar.festivals(on: date).map { festival in
             .object(["name": .string(festival.name), "summary": .string(festival.summary), "region": .string(festival.region), "sourceTitle": .string(festival.sourceTitle), "sourceURL": .string(festival.sourceURL)])
@@ -149,6 +162,11 @@ struct AutomationRouteError: Error {
             let charts = try FourPillarsEngine().natalCharts(for: person)
             result["profile"] = try profileEnvelope(person)
             result["strengthBasis"] = try strengthBasis(person)
+            result["nativeStrength"] = try .from(store.nativeStrength(for: person))
+            switch store.personalHexagrams(for: person, at: instant) {
+            case .success(let hexagrams): result["hexagrams"] = try .from(hexagrams)
+            case .failure(let error): result["hexagrams"] = .null; result["hexagramsUnavailable"] = .string(error.localizedDescription)
+            }
             result["natalCharts"] = .array(charts.map(AutomationFacts.chart))
             if charts.count == 1 {
                 result["personalReading"] = AutomationFacts.reading(try PersonalDailyReadingEngine().analyze(natal: charts[0], flow: flow, strength: store.strength(for: person)))
@@ -408,19 +426,22 @@ struct AutomationRouteError: Error {
         if let note = store.dayNotes.latestAssessment(for: person) {
             return .object(["source": .string("agent_insight"), "assessment": .string(note.strengthAssessment!.rawValue), "noteID": .string(note.id.uuidString), "author": optional(note.author), "profileRevision": optional(note.profileRevision)])
         }
-        return .object(["source": .string("undetermined"), "assessment": .string("unspecified")])
+        let report = store.nativeStrength(for: person)
+        return .object(["source": .string("local_rule"), "assessment": .string(report.assessment.rawValue), "ruleVersion": .string(report.ruleVersion), "label": .string(report.label)])
     }
 
     static let mutations: Set<String> = ["profiles.create", "profiles.update", "profiles.delete", "events.create", "events.update", "events.delete", "tasks.complete", "journal.create", "journal.update", "journal.delete", "insights.save", "insights.delete"]
     private var capabilities: JSONValue {
-        let reads = ["status", "capabilities", "profiles.list", "profiles.show", "chart.show", "luck.show", "calendar.day", "context.day", "events.list", "events.show", "tasks.list", "tasks.show", "journal.list", "journal.show", "insights.list", "insights.show", "knowledge.search", "knowledge.read", "open.day", "open.chart", "open.event", "open.journal"]
+        let reads = ["status", "capabilities", "profiles.list", "profiles.show", "chart.show", "luck.show", "strength.show", "hexagrams.show", "calendar.day", "context.day", "events.list", "events.show", "tasks.list", "tasks.show", "journal.list", "journal.show", "insights.list", "insights.show", "knowledge.search", "knowledge.read", "open.day", "open.chart", "open.event", "open.journal"]
         return .object(["protocolVersion": .number(1), "readMethods": .array(reads.map(JSONValue.string)), "writeMethods": .array(Self.mutations.sorted().map(JSONValue.string)),
             "writeContract": .string("写入必填 request_id；更新/删除必填 id 与 revision。相同请求重试使用同ID同参数。已完成的重放返回历史凭据，查询记录可确认当前状态。"),
             "dateContract": .string("date/from/to 为 YYYY-MM-DD（Asia/Shanghai）；start/end 为带时区的 ISO8601。from 含、to 不含。calendar/context 默认正午，可用 at=HH:mm。"),
             "eventCreate": .string("title,start必填；end默认一小时后，reminderMinutes默认null；可填end,notes,isTask,isAllDay,repeatRule(none/daily/weekly),reminderMinutes,taskHasDueDate,taskDueHasTime,location；destination只接受local。"),
             "profileCreate": .string("name,birthYear,birthMonth,birthDay,birthTimeKnown,timeZoneIdentifier必填；已知时刻还需birthHour,birthMinute；可填birthplace,dayBoundary(midnight/ziHour23),luckGender(male/female),strengthAssumption(unspecified/strong/weak)。"),
             "noteCreate": .string("journal create / insights save：date,title,body必填；可填profileID,author,profileRevision；insight关联档案需当前profileRevision，strengthAssessment为可选strong/weak/unspecified；来源固定agent。"),
-            "profileSelector": .string("chart/luck/context使用profile=UUID；profiles show可用id。读取不会改变当前UI档案。"),
+            "profileSelector": .string("chart/luck/strength/hexagrams/context使用profile=UUID；profiles show可用id。读取不会改变当前UI档案。"),
+            "personalAnalysis": .string("strength show返回本地普通扶抑初判、证据、规则版本；每日解读优先手动覆盖，其次有效Agent分析，再用本地初判。context包含nativeStrength与hexagrams。"),
+            "hexagrams": .string("hexagrams show必填profile,date，可填at=HH:mm（北京时间参考，默认12:00）；返回先后天和立春年/节月/六日卦、有效时段及规则。卦的自然日按档案出生时区换日，缺时刻或性别不猜补。"),
             "knowledge": .string("search query可省略以列出条目；read id必填，offset按字符计；应用的外部Agent面板可添加本机技能文件夹。"),
             "notes": .string("list仅返回摘要，可按date/profile筛选并传offset/limit。show读取正文；insights save提供id+revision时更新。"),
             "restrictedWrites": .string("create不接受id/revision，由应用生成新ID；delete和tasks.complete仅接受id/revision；tasks.complete只完成已有待办。"),

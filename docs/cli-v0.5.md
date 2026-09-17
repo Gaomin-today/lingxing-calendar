@@ -1,4 +1,6 @@
-# v0.5：让自己的 Agent 使用灵性日历
+# CLI 与 Skill：让自己的 Agent 使用灵性日历（v0.6）
+
+文档路径保留 `cli-v0.5.md`，现已包含 v0.6 新增能力；协议版本仍以 `capabilities` 为准。
 
 本版提供本机 `lingxi` CLI、随应用分发的 Skill、可查询知识和分析回写。运行在这台 Mac 上、能够执行命令的 Agent 可以读取档案和排盘、操作日程、保存日记与解读。应用负责计算与落盘，没有新增内置 Agent 框架、模型调用循环、MCP 或网络服务。
 
@@ -18,6 +20,8 @@ build/灵性日历.app/Contents/MacOS/lingxi skill path
 
 如果 CLI 不在 PATH，提供完整可执行文件路径即可。下文的 `lingxi` 是这一可执行文件的简称。业务命令要求应用正在运行；CLI 不直接改 JSON，也不自动启动应用。`--help` 和 `skill path` 可用于查看帮助和本地随包资源。
 
+从首页、命盘或具体日程点击「交给我的 Agent」，可以复制完整任务说明：CLI 与 Skill 的本机路径、目标日期／档案／日程、北京时间参考时分、读取入口及是否回写日笺。卦象页选择的时分会保留为 `--at HH:mm`。复制仅生成任务文本，没有启动模型或执行写入；将文本发送给自己的 Agent 后，以它实际返回的 CLI 结果核对完成情况。
+
 ## 可用能力
 
 | 命令 | 作用 |
@@ -26,8 +30,10 @@ build/灵性日历.app/Contents/MacOS/lingxi skill path
 | `profiles list/show/create/update/delete` | 读取与维护出生档案 |
 | `chart show --profile ID` | 确定性四柱、候选盘和命盘详情 |
 | `luck show --profile ID` | 起运、大运、流年与节月 |
+| `strength show --profile ID` | 本地普通扶抑初判、证据、规则版本及实际采用的前提 |
+| `hexagrams show --profile ID --date YYYY-MM-DD` | 先后天、年／月／日卦、元堂、当前爻和有效时段 |
 | `calendar day --date YYYY-MM-DD` | 农历、节气、黄历和节日来源 |
-| `context --profile ID --date YYYY-MM-DD` | 某人的某日组合上下文 |
+| `context --profile ID --date YYYY-MM-DD` | 某人的某日组合上下文，含 `nativeStrength`、`strengthBasis` 与 `hexagrams` |
 | `events list/show/create/update/delete` | 查询与操作日程 |
 | `tasks list/show/complete` | 查询待办（含已完成与无期限），或完成本地待办；恢复通过 `events update` 设置 `isCompleted: false` |
 | `journal list/show/create/update/delete` | 日记查询、创建与编辑 |
@@ -43,22 +49,27 @@ build/灵性日历.app/Contents/MacOS/lingxi skill path
 lingxi profiles list
 lingxi profiles show --profile PROFILE_ID
 lingxi context --profile PROFILE_ID --date 2026-09-20
+lingxi strength show --profile PROFILE_ID
+lingxi hexagrams show --profile PROFILE_ID --date 2026-09-20 --at 12:00
 lingxi knowledge search --query 旺衰
 lingxi knowledge read --id strength-analysis
 ```
 
 替换示例中的 `PROFILE_ID` 为实际返回的档案 ID。多个档案时应明确选择；不根据昵称推断生日或排运性别。
 
-`calendar day` 与 `context` 默认使用当天 12:00 的参考时刻，可用 `--at 23:30` 查看另一时刻。`luck show --profile PROFILE_ID --year 2026` 在大运之外返回该立春流年和十二节月。`events show --id ID` 可直接读取本地事项；Apple 事项需先查询包含它的日期范围，Apple 待办可先运行 `tasks list`。无期限待办不靠日期范围发现，应查询 `tasks list`。
+`calendar day`、`context` 与 `hexagrams show` 以 `--date` 和 `--at` 指定 **Asia/Shanghai** 的参考时刻；`at` 默认 `12:00`，可用 `--at 23:30` 查看另一时刻。河洛报告中的自然日按出生档案 IANA 时区零点递进，不跟随八字的 23 点换日选项；节月在精确交节时刻切换。遇到交节，当地同一天可能有两个不同的月卦／日卦，应显示返回的区间，不能宣称全天不变。[完整河洛口径及参考脚本边界修正](heluo-v0.6.md)。
+
+`luck show --profile PROFILE_ID --year 2026` 在大运之外返回该立春流年和十二节月。`events show --id ID` 可直接读取本地事项；Apple 事项需先查询包含它的日期范围，Apple 待办可先运行 `tasks list`。无期限待办不靠日期范围发现，应查询 `tasks list`。
 
 ## Skill 怎样分析和回写
 
 随附的 `lingxi-calendar` Skill 要求先取得应用的确定性排盘，再按需读取知识，最后解释和执行用户已交代的操作。它不会自己生成农历或干支，不把黄历整日标签当作交节瞬间，也不会隐藏未知时柱或多个候选盘。
 
-内置知识目前有五篇项目自编文档：
+内置知识目前有六篇项目自编文档：
 
 - `chart-conventions`：四柱字段、出生时区、换日、大运与节月口径。
-- `strength-analysis`：月令、根气、生扶、泄耗克、合冲与结构的证据组织。
+- `strength-analysis`：本地初判边界，月令、根气、生扶、泄耗克、合冲与结构的证据组织。
+- `heluo-guide`：先后天与值年／月／日卦、元堂、参考时刻及区间的解释方式。
 - `daily-reading`：十神和个人每日关系的解释与行动转译。
 - `calendar-and-almanac`：历法、黄历、民俗及来源的区别。
 - `planning-and-journal`：日程准备、日笺与日记回写。
@@ -69,9 +80,19 @@ lingxi knowledge read --id strength-analysis
 
 分析记录使用 `kind: insight`，日记使用 `kind: journal`。调用时由所选命令决定类型，来源固定为 Agent，输入参数不另传 `kind` 或 `source`。正文、作者与来源分开保留。涉及命盘的解读关联 `profileID` 和读取时的 `profileRevision`；出生资料修改后，旧解读标为过期，但不自动删除正文。日记正文按需另读，不默认并入每次个人日历上下文。
 
-旺衰分析可由用户自己的 Agent 给出初步偏强、偏弱或未定。可选 `strengthAssessment` 使用 `strong`、`weak`、`unspecified`；证据、采用的口径及缺项写入正文。该字段要求 Agent 来源、关联档案及版本。它不是应用新增加的统一自动旺衰算法，也不会改写用户手选的 `strengthAssumption`。普通每日建议未做旺衰分析时省略此字段。
+`strength show` 返回 `profile`、本地 `report` 与 `strengthBasis`；`context` 中同一份原生报告名为 `nativeStrength`。报告采用 `ordinary-fuyi-v1.0` 普通扶抑筛查规则，含 `evidence`、`counterEvidence`、`uncertainties`、`limitations`。缺时刻、多候选盘、杂气月或明显结构争议保留未定，不以五行总分或概率代替判断，也不自动确定喜用神。
 
-应用优先使用档案中明确选择的偏强／偏弱假设；没有手动覆盖时，自动采用与当前档案 `revision` 完全一致、最近更新且带有 `strengthAssessment` 的 Agent 分析。旧版本分析保留正文，但不参与当前每日解读；最新分析为 `unspecified` 时保留未定。`context` 的 `strengthBasis` 返回实际采用的结论和来源，Agent 来源还带分析记录 ID，可据此读取依据。没有有效分析也能正常使用日历和命盘。
+`hexagrams show` 返回 `profile` 与 `hexagrams`。出生时刻或排盘性别缺失时，该命令返回 `hexagrams_unavailable`；组合 `context` 仍保留其他字段，将 `hexagrams` 置空并给出 `hexagramsUnavailable`。出生前或超出先后天岁序覆盖时，报告保留先后天卦，具体周期可为空且附原因。
+
+旺衰分析也可由用户自己的 Agent 复核，给出初步偏强、偏弱或未定。可选 `strengthAssessment` 使用 `strong`、`weak`、`unspecified`；证据、采用的口径及缺项写入正文。该字段要求 Agent 来源、关联档案及版本。它是独立于本地报告的 Agent 解释层，不会改写用户手选的 `strengthAssumption`。普通每日建议未做旺衰分析时省略此字段。
+
+实际前提按以下顺序采用：
+
+1. 档案明确选择的偏强／偏弱：`strengthBasis.source = profile_override`。
+2. 与当前档案 `revision` 一致、最近更新且带 `strengthAssessment` 的 Agent 分析：`agent_insight`，带 `noteID`、作者与版本。最新有效分析为 `unspecified` 时保留未定，不再回退本地结论。
+3. 没有以上覆盖时采用本地普通扶抑初判：`local_rule`，带 `ruleVersion` 与标签。
+
+旧版本 Agent 分析保留正文但不参与当前解读。本地报告始终可以查询，包括用户手动或 Agent 结论正在优先生效时；不要把 `nativeStrength` 错当成实际生效的前提。
 
 写入示例：先将以下参数保存为 JSON 文件，并替换成实际档案 ID、版本和分析内容，再运行 `lingxi insights save --input /path/to/insight.json --request-id UNIQUE_REQUEST_ID`。不要额外传 `source` 或 `kind`。
 

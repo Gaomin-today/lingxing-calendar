@@ -1,6 +1,6 @@
 import Foundation
 
-/// A user-selected interpretive premise, never an automatically calculated score.
+/// An interpretive premise with a separately recorded manual, Agent, or local-rule source.
 public enum BaziStrengthAssumption: String, Codable, CaseIterable, Identifiable, Sendable {
     case unspecified, strong, weak
     public var id: String { rawValue }
@@ -115,7 +115,7 @@ public struct PersonalDailyReadingEngine: Sendable {
     public static let balanceSourceURL = "https://zh.wikisource.org/wiki/三命通會_(四庫全書本)/卷07"
     public static let hiddenStemSourceTitle = "通行藏干表 · lunar-swift 1.1.8 · LunarUtil"
     public static let hiddenStemSourceURL = "https://github.com/6tail/lunar-swift/blob/a7ec0e9b29f84a5d98b09b9ffd31145f17470d56/Sources/LunarSwift/LunarUtil.swift"
-    public static let scopeNote = "这是传统规则与自我探索提示。身强、身弱是本次采用的解读前提，不代表体能或心理能力。本地规则引擎不独立判断旺衰喜用；外部分析需综合格局、调候、合化、根气受损及大运。合冲不直接判吉凶，行动建议为现代转译，不承诺事件或预测结果。"
+    public static let scopeNote = "这是传统规则与自我探索提示。身强、身弱是本次采用的解读前提，不代表体能或心理能力。旺衰来源可为本地初判、Agent 分析或手动前提；喜用神仍需综合格局、调候、合化与根气等，阶段解读还需另看大运。合冲不直接判吉凶，行动建议为现代转译，不承诺事件或预测结果。"
 
     private let relations = BaziRelationshipEngine()
     private let details = NatalChartDetailsEngine()
@@ -168,7 +168,7 @@ public struct PersonalDailyReadingEngine: Sendable {
             BaziNatalObservation(id: "balance", title: "旺衰仍需怎样核对",
                 body: "\(natalMonth.relationship)。把这条月令线索与透干、根气放在一起看，仍需核对制化与寒暖燥湿，才能进一步谈旺衰。",
                 evidence: ["出生月柱\(natal.month.text)", "已知\(natalDetails.pillars.count)柱"],
-                ruleNote: "本页没有自动的身强身弱结论。辰戌丑未的杂气以及交节后的司令分日均未量化。" + unknownSuffix,
+                ruleNote: "这里列出观察线索，完整初判依据见旺衰卡片。辰戌丑未的杂气以及交节后的司令分日均未量化。" + unknownSuffix,
                 sourceTitle: Self.balanceSourceTitle, sourceURL: Self.balanceSourceURL)
         ]
         let today = periods[2]
