@@ -11,9 +11,11 @@ struct BirthProfileEditor: View {
     @State private var hour: String
     @State private var minute: String
     @State private var saveError: String?
+    @State private var originalRevision: String?
 
     init(profiles: BirthProfileStore, draft: BirthProfile = BirthProfile()) {
         self.profiles = profiles
+        _originalRevision = State(initialValue: profiles.profiles.contains(where: { $0.id == draft.id }) ? try? AutomationSnapshot.revision(draft) : nil)
         _draft = State(initialValue: draft)
         _year = State(initialValue: String(draft.birthYear))
         _month = State(initialValue: String(draft.birthMonth))
@@ -210,11 +212,13 @@ struct BirthProfileEditor: View {
                 Text("传统顺逆排运规则需要此项和准确出生时刻；暂不填写也能查看命盘与每日关系。")
                     .font(.system(size: 11)).foregroundStyle(Theme.secondary)
                 Divider().overlay(Theme.line)
-                Picker("旺衰解读前提", selection: Binding(get: { draft.strengthAssumption ?? .unspecified }, set: { draft.strengthAssumption = $0 })) {
-                    ForEach(BaziStrengthAssumption.allCases) { Text($0.label).tag($0) }
-                }.pickerStyle(.segmented)
-                Text("这是你选用的解读前提，随时可以修改。未确定时展示共同主题与条件说明；不会凭五行数量自动判定身强、身弱。")
-                    .font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                DisclosureGroup("进阶：手动指定旺衰前提") {
+                    Picker("旺衰解读前提", selection: Binding(get: { draft.strengthAssumption ?? .unspecified }, set: { draft.strengthAssumption = $0 })) {
+                        ForEach(BaziStrengthAssumption.allCases) { Text($0.label).tag($0) }
+                    }.pickerStyle(.segmented).padding(.top, 10)
+                    Text("通常无需填写。保持未确定时，会采用与你当前档案匹配的最新 Agent 分析；手动指定身强或身弱将优先使用此处设定。")
+                        .font(.system(size: 11)).foregroundStyle(Theme.secondary).padding(.top, 6)
+                }.font(.system(size: 12))
             }
         }
     }
@@ -235,6 +239,10 @@ struct BirthProfileEditor: View {
     }
 
     private func save() {
+        let current = profiles.profiles.first { $0.id == draft.id }
+        guard (try? current.map(AutomationSnapshot.revision)) == originalRevision else {
+            saveError = "这份档案已在别处修改或删除，请关闭并重新打开后编辑。"; return
+        }
         guard let candidate = validation.profile else { return }
         if profiles.save(candidate) { dismiss() }
         else { saveError = profiles.error }

@@ -6,12 +6,15 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "LingxiCore", targets: ["LingxiCore"]),
-        .executable(name: "LingxingCalendar", targets: ["LingxiApp"])
+        .executable(name: "LingxingCalendar", targets: ["LingxiApp"]),
+        .executable(name: "lingxi", targets: ["LingxiCLI"])
     ],
     dependencies: [.package(path: "Vendor/LunarSwiftRuntime")],
     targets: [
         .target(name: "LingxiCore", dependencies: [.product(name: "LunarSwift", package: "LunarSwiftRuntime")]),
         .executableTarget(name: "LingxiApp", dependencies: ["LingxiCore"]),
-        .testTarget(name: "LingxiCoreTests", dependencies: ["LingxiCore"])
+        .executableTarget(name: "LingxiCLI", dependencies: ["LingxiCore"]),
+        .testTarget(name: "LingxiCoreTests", dependencies: ["LingxiCore"]),
+        .testTarget(name: "LingxiCLITests", dependencies: ["LingxiCLI", "LingxiCore"])
     ]
 )

@@ -13,4 +13,8 @@ events.json
 preview-events.json
 profiles.json
 preview-profiles.json
+notes.json
+preview-notes.json
+automation-mutations.json
+preview-mutations.json
 LocalReferenceSkills/

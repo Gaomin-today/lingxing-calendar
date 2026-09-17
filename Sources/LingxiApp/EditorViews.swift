@@ -17,6 +17,19 @@ struct EventEditor: View {
     @State private var defaultBeforeConnections = "local"
     @State private var confirmTransfer = false
     @State private var feedback: String?
+    @State private var originalRevision: String?
+    init(store: AppStore, event: CalendarEvent) {
+        self.store = store; _event = State(initialValue: event)
+        _originalRevision = State(initialValue: event.isExternal ? nil : try? store.events.first(where: { $0.id == event.id }).map(AutomationSnapshot.revision))
+    }
+    private func checkCurrentRevision() -> Bool {
+        guard !event.isExternal, pendingTransfer == nil else { return true }
+        let current = store.events.first { $0.id == event.id }
+        guard (try? current.map(AutomationSnapshot.revision)) == originalRevision else {
+            feedback = "这条安排已在别处修改或删除，请关闭并重新打开后编辑。"; return false
+        }
+        return true
+    }
     private var exists: Bool { event.isExternal || store.events.contains { $0.id == event.id } }
     private var readOnly: Bool { event.externalReadOnly == true || store.isPendingTransferDestination(event) }
     private var pendingTransfer: CalendarEvent? { store.pendingTransfer(for: event) }
@@ -115,7 +128,7 @@ struct EventEditor: View {
         .onChange(of: event.isAllDay) { _, allDay in if allDay && !event.isTask { event.start = store.calendar.gregorian.startOfDay(for: event.start); event.end = store.calendar.gregorian.date(byAdding: .day, value: 1, to: event.start)! } }
         .onChange(of: event.start) { old, new in if !event.isTask && event.end <= new { event.end = new.addingTimeInterval(max(3600, event.end.timeIntervalSince(old))) } }
         .confirmationDialog(event.isExternal ? "从「\(event.externalCalendarTitle ?? "系统来源")」删除？重复日程仅删除本次。" : "删除「\(event.title)」？本地重复项目将删除整个系列。", isPresented: $deleting) {
-            Button("删除", role: .destructive) { if store.delete(event) { dismiss() } else { feedback = store.status } }
+            Button("删除", role: .destructive) { if checkCurrentRevision() { if store.delete(event) { dismiss() } else { feedback = store.status } } }
         }
         .confirmationDialog("这个时段与已有安排重叠，仍要保存吗？", isPresented: $confirmConflict) { Button("仍然保存") { commit() } }
         .confirmationDialog("转入\(store.destinationLabel(destination, isTask: event.isTask))？成功后移除本地副本，后续修改写回 Apple。", isPresented: $confirmTransfer) { Button("确认转入") { checkConflictsAndSave() } }
@@ -166,6 +179,7 @@ struct EventEditor: View {
         if collisions.isEmpty { commit() } else { confirmConflict = true }
     }
     private func commit() {
+        guard checkCurrentRevision() else { return }
         if store.save(event, toCalendarID: destination == "local" ? nil : destination) {
             if !event.isExternal && rememberDestination { store.setDefaultDestination(destination, isTask: event.isTask) }
             if !event.isTask || event.hasDueDate { store.select(event.start) }

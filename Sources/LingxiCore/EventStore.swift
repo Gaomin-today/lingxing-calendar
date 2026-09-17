@@ -130,6 +130,9 @@ public struct EventRepository: Sendable {
     }
 
     public func save(_ events: [CalendarEvent]) throws {
+        // A file can become unreadable after the application has loaded its
+        // in-memory snapshot. Preserve that file instead of overwriting it.
+        if FileManager.default.fileExists(atPath: fileURL.path) { _ = try load() }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         // Foundation's reference-date encoding round-trips the stored Date

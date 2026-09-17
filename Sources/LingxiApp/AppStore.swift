@@ -48,6 +48,12 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     @Published var modelName = UserDefaults.standard.string(forKey: "modelName") ?? ""
     let calendar = CalendarEngine()
     let birthProfiles: BirthProfileStore
+    let dayNotes: DayNoteStore
+    @Published var showingAutomation = false
+    @Published var automationEnabled = UserDefaults.standard.object(forKey: "automationEnabled") as? Bool ?? true
+    @Published var automationStatus = "尚未启动"
+    @Published var highlightedNoteID: UUID?
+    var automationSettingsChanged: (() -> Void)?
     let scheduler = EventScheduler()
     let planner = PlanningEngine()
     let system = SystemCalendarService()
@@ -55,6 +61,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     private var systemTask: Task<Void, Never>?
     private var systemObservation: AnyCancellable?
     private var profileObservation: AnyCancellable?
+    private var noteObservation: AnyCancellable?
     private var systemRevision = 0
     let repository: EventRepository
     let notifications = NotificationService()
@@ -77,6 +84,8 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
             ? dataURL.deletingLastPathComponent().appendingPathComponent("preview-profiles.json")
             : BirthProfileRepository.defaultURL()
         birthProfiles = BirthProfileStore(fileURL: profileURL)
+        let noteURL = dataURL.deletingLastPathComponent().appendingPathComponent(Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview" ? "preview-notes.json" : "notes.json")
+        dayNotes = DayNoteStore(fileURL: noteURL)
         do { events = try repository.load() }
         catch { storageError = "本地日程读取失败，已保留原文件。\n\(error.localizedDescription)"; saveBlocked = true }
         notifications.onStatus = { [weak self] text in self?.notificationStatus = text }
@@ -92,6 +101,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         notifications.onShowCalendar = { [weak self] in self?.showMainAction?() }
         systemObservation = system.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        noteObservation = dayNotes.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         system.onChange = { [weak self] in self?.scheduleSystemReload() }
         Task { await refreshNotifications(requestPermission: false); await reloadSystemData() }
     }
@@ -138,6 +148,26 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         return cachedNatalCharts
     }
     var activeNatalChart: FourPillarsChart? { let charts = activeNatalCharts; return charts.count == 1 ? charts.first : nil }
+    func strength(for profile: BirthProfile) -> BaziStrengthAssumption {
+        if let selected = profile.strengthAssumption, selected != .unspecified { return selected }
+        return dayNotes.latestAssessment(for: profile)?.strengthAssessment ?? .unspecified
+    }
+    func strengthSource(for profile: BirthProfile) -> String {
+        if let selected = profile.strengthAssumption, selected != .unspecified { return "档案中的手动设定" }
+        if let note = dayNotes.latestAssessment(for: profile) { return "Agent 分析 · " + (note.author ?? "外部 Agent") }
+        return "尚无有效的旺衰分析"
+    }
+    func open(note: DayNote) {
+        let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"; formatter.timeZone = calendar.gregorian.timeZone
+        if let date = formatter.date(from: note.date) { select(date) }
+        if let id = note.profileID, birthProfiles.profiles.contains(where: { $0.id == id }) { birthProfiles.activeID = id }
+        highlightedNoteID = note.id; section = "日笺"
+    }
+    func setAutomationEnabled(_ enabled: Bool) {
+        automationEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "automationEnabled")
+        automationSettingsChanged?()
+    }
     func moveMonth(_ offset: Int) { visibleMonth = calendar.gregorian.date(byAdding: .month, value: offset, to: visibleMonth)! }
     func movePeriod(_ offset: Int) {
         switch calendarMode {
@@ -174,7 +204,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         } else { updated.start = start; updated.end = start.addingTimeInterval(duration) }
         editorEvent = updated
     }
-    @discardableResult func save(_ event: CalendarEvent, toCalendarID destination: String? = nil) -> Bool {
+    @discardableResult func save(_ event: CalendarEvent, toCalendarID destination: String? = nil, requestNotificationPermission: Bool = true) -> Bool {
         guard !isPendingTransferDestination(event) else { status = "请先打开本地副本完成转入整理，再修改 Apple 日程。"; return false }
         if !event.isExternal, let completed = localTransfers.completedReceipt(for: event.id) {
             status = "这条日程已转入\(completed.sourceLabel)。请关闭旧编辑器，从 Apple 来源重新打开后修改。"
@@ -197,7 +227,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         var updated = events
         if let index = updated.firstIndex(where: { $0.id == event.id }) { updated[index] = event }
         else { updated.append(event) }
-        return persist(updated, message: "已保存到本地：\(event.title)（不会写入 Apple）")
+        return persist(updated, message: "已保存到本地：\(event.title)（不会写入 Apple）", requestNotificationPermission: requestNotificationPermission)
     }
     private func showSavedSystemEvent(_ event: CalendarEvent) {
         if let choice = destinationCalendars.first(where: { $0.id == event.externalCalendarID }) { setSource(choice, selected: true) }
@@ -242,21 +272,24 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         }
         return false
     }
-    @discardableResult func delete(_ event: CalendarEvent) -> Bool {
+    @discardableResult func delete(_ event: CalendarEvent, requestNotificationPermission: Bool = true) -> Bool {
         guard !isPendingTransferDestination(event) else { status = "请先打开本地副本完成转入整理，再删除 Apple 日程。"; return false }
         guard pendingTransfer(for: event) == nil else { status = "请先在编辑器中完成转入后的本地副本整理。"; return false }
         if event.isExternal {
             do { try system.delete(event); scheduleSystemReload(); status = "已从系统来源删除「\(event.title)」"; return true }
             catch { status = "未删除：\(error.localizedDescription)"; return false }
         }
-        return persist(events.filter { $0.id != event.id }, message: "已删除「\(event.title)」")
+        return persist(events.filter { $0.id != event.id }, message: "已删除「\(event.title)」", requestNotificationPermission: requestNotificationPermission)
     }
     func toggleCompleted(_ event: CalendarEvent) {
         guard !isPendingTransferDestination(event) else { status = "请先打开本地副本完成转入整理，再修改完成状态。"; return }
         if event.isExternal {
             do { try system.setCompleted(event, completed: !event.isCompleted); scheduleSystemReload(); status = event.isCompleted ? "已恢复待办" : "已完成待办" }
             catch { status = "未修改：\(error.localizedDescription)" }
-        } else { var changed = event; changed.isCompleted.toggle(); _ = save(changed) }
+        } else {
+            guard var changed = events.first(where: { $0.id == event.id }), changed.isTask else { status = "这条待办已删除或变更，请重新查看。"; return }
+            changed.isCompleted.toggle(); _ = save(changed)
+        }
     }
     func setSource(_ choice: SystemCalendarChoice, selected: Bool) {
         if choice.isReminder { if selected { selectedReminderIDs.insert(choice.id) } else { selectedReminderIDs.remove(choice.id) } }
@@ -297,12 +330,12 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
             systemEvents = system.canReadEvents ? loadedEvents : []; if !system.canReadReminders { systemReminders = [] }; systemSyncMessage = error.localizedDescription
         }
     }
-    @discardableResult private func persist(_ updated: [CalendarEvent], message: String) -> Bool {
+    @discardableResult private func persist(_ updated: [CalendarEvent], message: String, requestNotificationPermission: Bool = true) -> Bool {
         guard !saveBlocked else { return false }
         do {
             try repository.save(updated)
             events = updated; status = message
-            Task { await refreshNotifications(requestPermission: updated.contains { $0.reminderMinutes != nil && !$0.isCompleted }) }
+            Task { await refreshNotifications(requestPermission: requestNotificationPermission && updated.contains { $0.reminderMinutes != nil && !$0.isCompleted }) }
             return true
         } catch { status = "保存失败：\(error.localizedDescription)"; return false }
     }

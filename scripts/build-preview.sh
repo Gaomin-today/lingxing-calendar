@@ -8,6 +8,16 @@ PREVIEW_APP="$PWD/build/灵性日历预览.app"
 mkdir -p "$PREVIEW_APP/Contents/MacOS" "$PREVIEW_APP/Contents/Resources"
 cp build/swift/debug/LingxingCalendar "$PREVIEW_APP/Contents/MacOS/LingxingCalendar.new"
 mv -f "$PREVIEW_APP/Contents/MacOS/LingxingCalendar.new" "$PREVIEW_APP/Contents/MacOS/LingxingCalendar"
+cp build/swift/debug/lingxi "$PREVIEW_APP/Contents/MacOS/lingxi.new"
+mv -f "$PREVIEW_APP/Contents/MacOS/lingxi.new" "$PREVIEW_APP/Contents/MacOS/lingxi"
+if [[ -d Resources/AgentSkill ]]; then
+    mkdir -p "$PREVIEW_APP/Contents/Resources/AgentSkill"
+    cp -R Resources/AgentSkill/. "$PREVIEW_APP/Contents/Resources/AgentSkill/"
+fi
+if [[ -d Resources/Knowledge ]]; then
+    mkdir -p "$PREVIEW_APP/Contents/Resources/Knowledge"
+    cp -R Resources/Knowledge/. "$PREVIEW_APP/Contents/Resources/Knowledge/"
+fi
 cp Resources/Info.plist "$PREVIEW_APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$PREVIEW_APP/Contents/Resources/"
 cp Resources/ThirdPartyNotices.txt "$PREVIEW_APP/Contents/Resources/"
@@ -30,5 +40,6 @@ rows=[item('预览 · 产品讨论',day+timedelta(hours=10),90),item('预览 · 
 json.dump(rows,open('build/preview-events.json','w'),ensure_ascii=False,indent=2)
 PY
 fi
+codesign --force --sign - "$PREVIEW_APP/Contents/MacOS/lingxi"
 codesign --force --deep --sign - "$PREVIEW_APP"
 echo "隔离预览：$PREVIEW_APP（合成数据，不读取真实本地日程、不发通知）"

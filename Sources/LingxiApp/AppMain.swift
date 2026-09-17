@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import LingxiCore
 
 @main enum LingxingApp {
     @MainActor static func main() {
@@ -17,6 +18,8 @@ import AppKit
     var chatWindow: NSWindow?
     var statusItem: NSStatusItem!
     private var reminderTimer: Timer?
+    private var automationServer: AutomationSocketServer?
+    private var automationRouter: AppAutomationRouter?
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1360, height: 880), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
@@ -29,6 +32,9 @@ import AppKit
         store.showMainAction = { [weak self] in self?.showMain() }
         store.showPetAction = { [weak self] in self?.updatePet() }
         store.showChatAction = { [weak self] in self?.openChat() }
+        automationRouter = AppAutomationRouter(store: store)
+        store.automationSettingsChanged = { [weak self] in self?.configureAutomation() }
+        configureAutomation()
         showMain(); updatePet()
         reminderTimer = Timer.scheduledTimer(withTimeInterval: 1800, repeats: true) { [weak self] _ in Task { @MainActor in guard let self else { return }; await self.store.refreshNotifications(requestPermission: false); await self.store.reloadSystemData() } }
         let menu = NSMenu()
@@ -46,6 +52,14 @@ import AppKit
         NSApp.mainMenu = menu
     }
     @objc func newEvent() { showMain(); store.newEvent() }
+    private func configureAutomation() {
+        automationServer?.stop(); automationServer = nil
+        guard store.automationEnabled, let router = automationRouter else { store.automationStatus = "本机 CLI 访问已关闭"; return }
+        let server = AutomationSocketServer(path: AutomationSocket.defaultPath(preview: store.isPreviewMode)) { request in await router.handle(request) }
+        do { try server.start(); automationServer = server; store.automationStatus = "已就绪 · 仅本机当前用户" }
+        catch { store.automationStatus = "CLI 未启动：\(error.localizedDescription)" }
+    }
+    func applicationWillTerminate(_ notification: Notification) { automationServer?.stop() }
     @objc func showMain() { mainWindow.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
     @objc func settings() { showMain(); store.showingSettings = true }
     @objc func about() { showMain(); store.showingSources = true }

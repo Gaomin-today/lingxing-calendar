@@ -115,7 +115,7 @@ public struct PersonalDailyReadingEngine: Sendable {
     public static let balanceSourceURL = "https://zh.wikisource.org/wiki/三命通會_(四庫全書本)/卷07"
     public static let hiddenStemSourceTitle = "通行藏干表 · lunar-swift 1.1.8 · LunarUtil"
     public static let hiddenStemSourceURL = "https://github.com/6tail/lunar-swift/blob/a7ec0e9b29f84a5d98b09b9ffd31145f17470d56/Sources/LunarSwift/LunarUtil.swift"
-    public static let scopeNote = "这是传统规则与自我探索提示。身强、身弱是你选择的解读假设，不代表体能或心理能力。尚未综合格局、调候、合化、根气受损及大运来判断旺衰喜用；合冲不直接判吉凶，行动建议为现代转译，不承诺事件或预测结果。"
+    public static let scopeNote = "这是传统规则与自我探索提示。身强、身弱是本次采用的解读前提，不代表体能或心理能力。本地规则引擎不独立判断旺衰喜用；外部分析需综合格局、调候、合化、根气受损及大运。合冲不直接判吉凶，行动建议为现代转译，不承诺事件或预测结果。"
 
     private let relations = BaziRelationshipEngine()
     private let details = NatalChartDetailsEngine()

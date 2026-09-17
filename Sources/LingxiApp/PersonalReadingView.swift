@@ -5,9 +5,11 @@ struct PersonalReadingView: View {
     let natal: FourPillarsChart
     let flow: FourPillarsChart
     let strength: BaziStrengthAssumption
+    let strengthSource: String
     @State private var selection: BaziStrengthAssumption
-    init(natal: FourPillarsChart, flow: FourPillarsChart, strength: BaziStrengthAssumption) {
+    init(natal: FourPillarsChart, flow: FourPillarsChart, strength: BaziStrengthAssumption, strengthSource: String) {
         self.natal = natal; self.flow = flow; self.strength = strength
+        self.strengthSource = strengthSource
         _selection = State(initialValue: strength)
     }
     var body: some View {
@@ -20,13 +22,18 @@ struct PersonalReadingView: View {
             Card {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        ExplanationButton(title: "旺衰解读前提", explanation: selection.explanation + "\n身强与身弱是命理扶抑法中的概念；这里按你的选择比较，不等同于身体或心理强弱。特殊格局、调候与合化需要另行综合分析。", sourceTitle: PersonalDailyReadingEngine.balanceSourceTitle, sourceURL: PersonalDailyReadingEngine.balanceSourceURL).font(.system(size: 12))
-                        Spacer()
+                        Text(strengthSource).font(.system(size: 12, weight: .medium))
+                        Spacer(); Pill(text: strength.label)
+                    }
+                    Text(strength == .unspecified ? "先呈现确定的十神、月令与关系。让自己的 Agent 读取命盘、保存有依据的分析后，这里会自动采用；无需先猜身强或身弱。" : "使用与当前出生资料对应的解读前提。它属于传统分析，不等同于身体或心理强弱。")
+                        .font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
+                    DisclosureGroup("进阶：临时比较不同旺衰前提") {
                         Picker("本次阅读的旺衰前提", selection: $selection) {
                             ForEach(BaziStrengthAssumption.allCases) { Text($0.label).tag($0) }
-                        }.pickerStyle(.segmented).labelsHidden().frame(width: 350)
-                    }
-                    Text("可临时切换比较；常用前提可在出生档案中保存。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                        }.pickerStyle(.segmented).labelsHidden().padding(.top, 10)
+                        ExplanationButton(title: "旺衰解读前提", explanation: selection.explanation + "\n这里只临时比较，不改写已保存的分析。特殊格局、调候与合化需另行综合判断。", sourceTitle: PersonalDailyReadingEngine.balanceSourceTitle, sourceURL: PersonalDailyReadingEngine.balanceSourceURL).font(.system(size: 11)).padding(.top, 6)
+                    }.font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                    if selection != strength { Text("当前为临时比较：" + selection.label).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }
                 }
             }
             switch Result(catching: { try PersonalDailyReadingEngine().analyze(natal: natal, flow: flow, strength: selection) }) {
