@@ -10,6 +10,7 @@ cp build/swift/debug/LingxingCalendar "$PREVIEW_APP/Contents/MacOS/LingxingCalen
 mv -f "$PREVIEW_APP/Contents/MacOS/LingxingCalendar.new" "$PREVIEW_APP/Contents/MacOS/LingxingCalendar"
 cp Resources/Info.plist "$PREVIEW_APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$PREVIEW_APP/Contents/Resources/"
+cp Resources/ThirdPartyNotices.txt "$PREVIEW_APP/Contents/Resources/"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier com.lingxing.calendar.preview' "$PREVIEW_APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleName 灵性日历预览' "$PREVIEW_APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName 灵性日历预览' "$PREVIEW_APP/Contents/Info.plist"

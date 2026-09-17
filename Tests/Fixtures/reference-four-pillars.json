@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "dependency": {
+    "name": "lunar_python",
+    "version": "1.4.8",
+    "pypiSdistSHA256": "3aa11cc73c25e70ddf0ba5bdac7398c03acc9491a3aa512a91c9642973b669d6"
+  },
+  "sourceSHA256": {
+    "LocalReferenceSkills/wannianli-pro/pyproject.toml": "029310d4305998cebd4a44d0a5c273c2e0fd09e3b376ec909437b976695491e1",
+    "LocalReferenceSkills/wannianli-pro/wannianli/engine.py": "a67f58da9ff6c303b5bc5fde464a0560cfce0841af50d80de9fbb20a8fe3051c",
+    "LocalReferenceSkills/wannianli-pro/scripts/calendar_query.py": "ea167f17bd2e2c7701121a94ef9eb424b5f53390228ce41620f4e46567895a81",
+    "LocalReferenceSkills/bazi-pro/pyproject.toml": "dc61b8268721f68e801076198cb2f6f6bbce8c870b354de40195b12161441bde",
+    "LocalReferenceSkills/bazi-pro/bazi_chart/engine.py": "81c743ae8d8f78c6b7fa4c56fdafb5176a5888bc8877d88e2be5ffe8a5a79851"
+  },
+  "notes": [
+    "All inputs are synthetic regression cases, not personal birth records.",
+    "Six cases execute the real wannianli engine; one executes the real bazi engine in standard time.",
+    "The supplemental lunar_python sect 2 case separately verifies the app's midnight default.",
+    "Cases use UTC+08:00 dates without historical DST; wannianli's timezone argument does not convert instants.",
+    "Python reports 2026 Lichun at 04:02:08 rounded to seconds; native Swift retains 04:02:08.404. Cases bracket it by two seconds.",
+    "calendar_query.py uses non-Exact year/month/day methods and is not the same four-pillar policy as wannianli.engine.",
+    "The Python and Swift libraries share the ShouXing algorithm family; agreement is a compatibility check, not independent astronomical accuracy proof.",
+    "User-provided skills have no included redistribution license and are not bundled into the app or repository."
+  ],
+  "cases": [
+    {
+      "id": "late-zi-before",
+      "instant": "1988-02-15T22:59:00+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "wannianli.engine.build_calendar_day",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "civil UTC+08:00",
+        "timezoneArgument": "echo only; no IANA conversion"
+      },
+      "pillars": {
+        "year": "戊辰",
+        "month": "甲寅",
+        "day": "庚子",
+        "time": "丁亥"
+      }
+    },
+    {
+      "id": "late-zi-after",
+      "instant": "1988-02-15T23:30:00+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "wannianli.engine.build_calendar_day",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "civil UTC+08:00",
+        "timezoneArgument": "echo only; no IANA conversion"
+      },
+      "pillars": {
+        "year": "戊辰",
+        "month": "甲寅",
+        "day": "辛丑",
+        "time": "戊子"
+      }
+    },
+    {
+      "id": "next-midnight",
+      "instant": "1988-02-16T00:00:00+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "wannianli.engine.build_calendar_day",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "civil UTC+08:00",
+        "timezoneArgument": "echo only; no IANA conversion"
+      },
+      "pillars": {
+        "year": "戊辰",
+        "month": "甲寅",
+        "day": "辛丑",
+        "time": "戊子"
+      }
+    },
+    {
+      "id": "lichun-before",
+      "instant": "2026-02-04T04:02:06+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "wannianli.engine.build_calendar_day",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "civil UTC+08:00",
+        "timezoneArgument": "echo only; no IANA conversion"
+      },
+      "pillars": {
+        "year": "乙巳",
+        "month": "己丑",
+        "day": "己酉",
+        "time": "丙寅"
+      }
+    },
+    {
+      "id": "lichun-after",
+      "instant": "2026-02-04T04:02:10+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "wannianli.engine.build_calendar_day",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "civil UTC+08:00",
+        "timezoneArgument": "echo only; no IANA conversion"
+      },
+      "pillars": {
+        "year": "丙午",
+        "month": "庚寅",
+        "day": "己酉",
+        "time": "丙寅"
+      }
+    },
+    {
+      "id": "ordinary-day",
+      "instant": "2026-09-17T12:00:00+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "wannianli.engine.build_calendar_day",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "civil UTC+08:00",
+        "timezoneArgument": "echo only; no IANA conversion"
+      },
+      "pillars": {
+        "year": "丙午",
+        "month": "丁酉",
+        "day": "甲午",
+        "time": "庚午"
+      }
+    },
+    {
+      "id": "bazi-standard-late-zi",
+      "instant": "1988-02-15T23:30:00+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "ziHour23",
+      "referenceEngine": "bazi_chart.engine.build_chart",
+      "referencePolicy": {
+        "sect": 1,
+        "timePolicy": "standard",
+        "chartSolar": "1988-02-15 23:30:00",
+        "dstHours": 0,
+        "gender": "synthetic fixture only; not a user birth record"
+      },
+      "pillars": {
+        "year": "戊辰",
+        "month": "甲寅",
+        "day": "辛丑",
+        "time": "戊子"
+      }
+    },
+    {
+      "id": "midnight-policy-late-zi",
+      "instant": "1988-02-15T23:30:00+08:00",
+      "timeZone": "Asia/Shanghai",
+      "dayBoundary": "midnight",
+      "referenceEngine": "lunar_python.EightChar",
+      "referencePolicy": {
+        "sect": 2,
+        "timePolicy": "civil UTC+08:00; late-zi hour stem uses the following day"
+      },
+      "pillars": {
+        "year": "戊辰",
+        "month": "甲寅",
+        "day": "庚子",
+        "time": "戊子"
+      }
+    }
+  ]
+}

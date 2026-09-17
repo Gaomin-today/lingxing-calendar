@@ -9,6 +9,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp build/swift/release/LingxingCalendar "$APP/Contents/MacOS/LingxingCalendar.new"
 mv -f "$APP/Contents/MacOS/LingxingCalendar.new" "$APP/Contents/MacOS/LingxingCalendar"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/ThirdPartyNotices.txt "$APP/Contents/Resources/"
 if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$APP/Contents/Resources/"; fi
 codesign --force --deep --sign - "$APP"
 echo "已构建：$APP"

@@ -11,3 +11,6 @@ build/
 *.key
 events.json
 preview-events.json
+profiles.json
+preview-profiles.json
+LocalReferenceSkills/

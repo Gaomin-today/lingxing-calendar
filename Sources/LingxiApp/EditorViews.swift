@@ -268,7 +268,7 @@ struct SettingsView: View {
                         Text("本地日程存于这台 Mac；已连接的 Apple 来源由系统账户同步。聊天记录只在本次运行中保留。").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                         if let error = store.storageError { Text(error).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }
                         Button("在 Finder 中查看本地数据") { NSWorkspace.shared.activateFileViewerSelecting([store.repository.fileURL]) }.buttonStyle(QuietButton()).font(.system(size: 11))
-                        Text("历法统一北京时间。年干支以农历正月初一换年；日干支零时换日。节气已核实范围为 2025–2027 年，范围外不作推算。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                        Text("民用月历采用北京时间，农历年干支正月初一换年、日干支零点换日；节气日期表覆盖 2025–2027 年。四柱模块另按立春、交节及档案选择的换日口径计算。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     } }
                 }
             }
@@ -285,9 +285,15 @@ struct SourcesView: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack { Text("历法与资料说明").font(.system(size: 24, weight: .medium, design: .serif)); Spacer(); Button("关闭") { dismiss() }.buttonStyle(QuietButton()) }
             ScrollView { VStack(alignment: .leading, spacing: 20) {
-                section("历法事实", "公历与农历由系统 Foundation 中国历法计算，固定北京时间 UTC+8；闰月明确标记。年干支按农历正月初一换年，日干支采用零时换日。此口径用于民用日历，并非八字排盘。")
-                section("节气范围", "节气日期依据香港天文台 2025–2027 年公历与农历对照表。范围外仍可使用月历和日程，但不会填入未经核实的节气日期。日历展示节气日期，不提供精确交节时刻。")
+                section("民用日历口径", "公历与农历由系统 Foundation 中国历法计算，使用 Asia/Shanghai 时区（现代为 UTC+8，历史夏令时随时区规则）。闰月明确标记。月历上的农历年干支按正月初一换年，日干支采用零点换日。")
+                section("月历上的节气", "月历节气日期依据香港天文台 2025–2027 年公历与农历对照表。范围外仍可使用月历和日程，但不填入未经核实的节气日期。四柱模块另外计算交节时刻。")
                 Link("香港天文台 · 公历与农历对照表 ↗", destination: URL(string: "https://www.hko.gov.hk/sc/gts/time/conversion.htm")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
+                section("四柱排盘口径", "支持 1901–2099 年。立春交接时换年，十二节交接时换月；按所选当地钟表时间定日和时柱，不校正真太阳时。档案可选零点或 23 点换日；两种口径的晚子时时干均从次日日干推起，与 lunar 的 sect=2／sect=1 对应。四柱年柱可能与月历农历年干支不同。")
+                section("交节算法与精度", "采用 lunar-swift 1.1.8 的太阳视黄经与 ΔT 算法，代码版本固定并保留 MIT 许可。已交叉核对香港天文台六个分钟级参考时刻，不能据此声称所有年份都有秒级精度；靠近交节前后 2 分钟会提示核对。")
+                Link("lunar-swift · 算法与许可 ↗", destination: URL(string: "https://github.com/6tail/lunar-swift/tree/a7ec0e9b29f84a5d98b09b9ffd31145f17470d56")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
+                section("出生档案与不确定性", "出生档案独立保存在本机，不进入阿灵的云端聊天上下文。未知时刻不补造时柱；生日遇到交节或所选换日边界时，列出可能命盘并暂停单一日运解读。时钟回拨产生重复时间时取首次，并提示歧义。")
+                section("传统关系解读", "十神、天干五合、地支六合／六冲／六害，参考《三命通会》卷二与卷五逐条列出。合不直接代表吉，冲不直接代表凶；当前只做流日关系核对，未计算旺衰、喜用与大运，不提供综合吉凶分。")
+                Link("《三命通会》· 卷二 ↗", destination: URL(string: "https://zh.wikisource.org/wiki/三命通會_(四庫全書本)/卷02")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
                 section("民俗资料", "节日和神诞卡片均提供各自来源、地域与传统说明。神诞并非统一历法事实，可能存在不同日期。闰月不自动重复节庆。第一版提供基础展示，订阅提醒将在后续版本加入。")
                 section("建议与占卜", "行动建议由事项类型生成；传统文化部分不代表对未来的预测。尚未接入经核对的黄历版本，因此不提供每日或时辰吉凶。阿灵可陪你梳理心情与选择，正式卦象演算留待后续。")
                 section("提醒与重复", "本地支持一次性、每日、每周日程；修改或删除针对整个系列，重复待办完成也会结束整个系列。Apple 已有重复日程只操作本次。通知最多 52 条常规提醒，连同稍后提醒不超过 60 条，运行期间补充。")

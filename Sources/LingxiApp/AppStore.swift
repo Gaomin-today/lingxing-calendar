@@ -46,12 +46,14 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     @Published var endpoint = UserDefaults.standard.string(forKey: "endpoint") ?? ""
     @Published var modelName = UserDefaults.standard.string(forKey: "modelName") ?? ""
     let calendar = CalendarEngine()
+    let birthProfiles: BirthProfileStore
     let scheduler = EventScheduler()
     let planner = PlanningEngine()
     let system = SystemCalendarService()
     private let localTransfers = LocalEventTransfer<CalendarEvent>()
     private var systemTask: Task<Void, Never>?
     private var systemObservation: AnyCancellable?
+    private var profileObservation: AnyCancellable?
     private var systemRevision = 0
     let repository: EventRepository
     let notifications = NotificationService()
@@ -70,6 +72,10 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         let dataURL = EventRepository.defaultURL()
         #endif
         repository = EventRepository(fileURL: dataURL)
+        let profileURL = Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview"
+            ? dataURL.deletingLastPathComponent().appendingPathComponent("preview-profiles.json")
+            : BirthProfileRepository.defaultURL()
+        birthProfiles = BirthProfileStore(fileURL: profileURL)
         do { events = try repository.load() }
         catch { storageError = "本地日程读取失败，已保留原文件。\n\(error.localizedDescription)"; saveBlocked = true }
         notifications.onStatus = { [weak self] text in self?.notificationStatus = text }
@@ -84,6 +90,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         }
         notifications.onShowCalendar = { [weak self] in self?.showMainAction?() }
         systemObservation = system.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         system.onChange = { [weak self] in self?.scheduleSystemReload() }
         Task { await refreshNotifications(requestPermission: false); await reloadSystemData() }
     }

@@ -14,12 +14,15 @@ struct MainView: View {
                 HStack(alignment: .top, spacing: 0) {
                     Group {
                         if store.section == "待办" { TaskListView(store: store) }
+                        else if store.section == "四柱与八字" { BaziWorkspaceView(store: store, profiles: store.birthProfiles) }
                         else if store.section == "岁时民俗" { CultureView(store: store) }
                         else if store.calendarMode == .month { calendarContent }
                         else { TimelineCalendarView(store: store) }
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                    Rectangle().fill(Theme.line).frame(width: 1)
-                    DayDetailView(store: store).frame(width: store.calendarMode == .month || store.section != "月历" ? 304 : 272)
+                    if store.section != "四柱与八字" {
+                        Rectangle().fill(Theme.line).frame(width: 1)
+                        DayDetailView(store: store).frame(width: store.calendarMode == .month || store.section != "月历" ? 304 : 272)
+                    }
                 }
             }
         }
@@ -51,6 +54,7 @@ struct MainView: View {
             navItem("月历", icon: "calendar")
             navItem("待办", icon: "checkmark.circle", count: store.pendingTasks.count)
             navItem("岁时民俗", icon: "leaf")
+            navItem("四柱与八字", icon: "square.grid.2x2")
             Button { store.showingConnections = true } label: { Label("日历与清单来源", systemImage: "rectangle.stack").font(.system(size: 12)).foregroundStyle(Theme.secondary).padding(12) }.buttonStyle(.plain)
             Rectangle().fill(Theme.line).frame(height: 1).padding(.vertical, 24)
             Text("陪伴").font(.system(size: 10, weight: .medium)).tracking(2).foregroundStyle(Theme.secondary).padding(.bottom, 15)
@@ -146,6 +150,7 @@ struct DayDetailView: View {
                 Text("\(info.yearGanZhi)年 · \(info.zodiac)年 · \(info.dayGanZhi)日").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                 if let term = info.solarTerm { Label(term, systemImage: "sun.horizon").font(.system(size: 13)).foregroundStyle(Theme.jade) }
                 Divider().overlay(Theme.line)
+                DailyPillarsCard(store: store)
                 ForEach(store.calendar.festivals(on: store.selectedDate)) { festival in FestivalCard(festival: festival) }
                 HStack { Text("当日安排").font(.system(size: 13, weight: .medium)); Spacer(); Text("\(store.occurrences.count) 项").font(.system(size: 10)).foregroundStyle(Theme.secondary); Button { store.newEvent() } label: { Image(systemName: "plus.circle").foregroundStyle(Theme.jade) }.buttonStyle(.plain).accessibilityLabel("为选中日期添加日程") }
                 if store.occurrences.isEmpty {
