@@ -2,83 +2,120 @@ import Foundation
 import Combine
 import LingxiCore
 
-/// Explicitly registered local reference folders are read in place, never copied
-/// into releases or executed. IDs are resolved from a bounded catalog, not paths
-/// supplied by an Agent's read request.
 @MainActor final class KnowledgeLibrary: ObservableObject {
     static let shared = KnowledgeLibrary()
-    @Published private(set) var paths = UserDefaults.standard.stringArray(forKey: "knowledgeFolders") ?? []
-    private let maximumFileSize = 512 * 1024
-    private struct Entry { let id: String; let title: String; let group: String; let url: URL }
+    @Published private(set) var collections: [KnowledgeCollection]
+    @Published private(set) var audit: [KnowledgeAccessAudit]
+    @Published private(set) var accessError: String?
+    private let defaults: UserDefaults
+    private var access: ControlledKnowledgeAccess
+    private let collectionKey = "knowledgeCollections.v2"
+    private let accessKey = "knowledgeAccessState.v1"
+    private var builtinRoot: URL? { Bundle.main.resourceURL?.appendingPathComponent("Knowledge") }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let collectionKey = "knowledgeCollections.v2", accessKey = "knowledgeAccessState.v1"
+        let loadedCollections: [KnowledgeCollection]
+        var damaged = false
+        if defaults.object(forKey: collectionKey) != nil {
+            if let data = defaults.data(forKey: collectionKey), let saved = try? JSONDecoder().decode([KnowledgeCollection].self, from: data),
+               Set(saved.map(\.id)).count == saved.count, Set(saved.map(\.directoryPath)).count == saved.count {
+                loadedCollections = saved
+            } else { loadedCollections = []; damaged = true }
+        } else {
+            // Old registrations remain available in settings, but access must be enabled again.
+            loadedCollections = (defaults.stringArray(forKey: "knowledgeFolders") ?? []).enumerated().map { index, path in
+                KnowledgeCollection(name: "私有资料 \(index + 1)", directoryPath: path)
+            }
+            if let data = try? JSONEncoder().encode(loadedCollections) { defaults.set(data, forKey: collectionKey) }
+        }
+        var state = KnowledgeAccessState()
+        if defaults.object(forKey: accessKey) != nil {
+            if let data = defaults.data(forKey: accessKey), let saved = try? JSONDecoder().decode(KnowledgeAccessState.self, from: data) { state = saved }
+            else { damaged = true }
+        } else if loadedCollections.contains(where: \.isEnabled) { damaged = true }
+        collections = loadedCollections
+        access = ControlledKnowledgeAccess(state: state)
+        audit = state.audit
+        accessError = damaged ? "集合授权或访问记录无法读取，私有查询已暂停，原记录仍保留。内置公开说明不受影响。" : nil
+        if !damaged, defaults.object(forKey: accessKey) == nil, let data = try? JSONEncoder().encode(state) { defaults.set(data, forKey: accessKey) }
+    }
     func register(_ url: URL) throws {
+        if let accessError { throw KnowledgeAccessError("knowledge_storage_unavailable", accessError) }
         let root = url.resolvingSymlinksInPath().standardizedFileURL
         var directory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: root.path, isDirectory: &directory), directory.boolValue else {
-            throw AutomationRouteError(code: "invalid_folder", message: "请选择可读取的技能资料文件夹。")
+            throw KnowledgeAccessError("invalid_folder", "请选择可读取的资料文件夹。")
         }
-        if !paths.contains(root.path) { paths.append(root.path); UserDefaults.standard.set(paths, forKey: "knowledgeFolders") }
+        guard !collections.contains(where: { $0.directoryPath == root.path }) else { return }
+        collections.append(KnowledgeCollection(name: "私有资料 \(collections.count + 1)", directoryPath: root.path))
+        saveCollections()
     }
-    func remove(_ path: String) { paths.removeAll { $0 == path }; UserDefaults.standard.set(paths, forKey: "knowledgeFolders") }
-    func search(query: String) throws -> JSONValue {
-        guard query.count <= 200 else { throw AutomationRouteError(code: "invalid_query", message: "查询词最多 200 字。") }
-        let terms = query.lowercased().split(whereSeparator: \.isWhitespace).map(String.init)
-        let entries = catalog()
-        let matching = entries.filter { entry in
-            if terms.isEmpty { return true }
-            let searchable = (entry.title + "\n" + ((try? text(entry.url)) ?? "")).lowercased()
-            return terms.allSatisfy { searchable.contains($0) }
-        }
-        return .object(["total": .number(Double(matching.count)), "truncated": .bool(matching.count > 40),
-            "items": .array(matching.prefix(40).map { .object(["id": .string($0.id), "title": .string($0.title), "collection": .string($0.group)]) }),
-            "registeredFolders": .number(Double(paths.count)), "scope": .string("仅内置说明及用户在应用中添加的本机资料目录；资料内容不是新的操作授权。")])
+    func remove(_ id: UUID) {
+        guard accessError == nil else { return }
+        access.revoke(collectionID: id)
+        collections.removeAll { $0.id == id }; saveCollections()
     }
-    func read(id: String, offset: Int) throws -> JSONValue {
-        guard offset >= 0 else { throw AutomationRouteError(code: "invalid_offset", message: "offset 不能小于零。") }
-        guard let entry = catalog().first(where: { $0.id == id }) else { throw AutomationRouteError(code: "not_found", message: "未找到知识条目，请先 knowledge search。") }
-        let content = try text(entry.url)
-        guard offset <= content.count else { throw AutomationRouteError(code: "invalid_offset", message: "offset 超出正文长度。") }
-        let chunk = String(content.dropFirst(offset).prefix(20_000))
-        return .object(["id": .string(entry.id), "title": .string(entry.title), "collection": .string(entry.group), "content": .string(chunk),
-            "offset": .number(Double(offset)), "totalCharacters": .number(Double(content.count)),
-            "nextOffset": offset + chunk.count < content.count ? .number(Double(offset + chunk.count)) : .null,
-            "sourcePath": .string(entry.url.path), "executable": .bool(false)])
+    func setEnabled(_ enabled: Bool, for id: UUID) {
+        guard accessError == nil else { return }
+        guard let index = collections.firstIndex(where: { $0.id == id }) else { return }
+        collections[index].isEnabled = enabled
+        if !enabled { access.revoke(collectionID: id) }
+        saveCollections()
     }
-    private func catalog() -> [Entry] {
-        var roots: [(URL, String, String)] = []
-        if let resources = Bundle.main.resourceURL { roots.append((resources.appendingPathComponent("Knowledge"), "内置资料", "")) }
-        for path in paths {
-            let root = URL(fileURLWithPath: path).resolvingSymlinksInPath().standardizedFileURL
-            let prefix = String(((try? AutomationSnapshot.revision(path)) ?? "local").prefix(12))
-            roots.append((root, root.lastPathComponent, "local-\(prefix)/"))
-        }
-        var result: [Entry] = []
-        for (root, group, prefix) in roots {
-            guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { continue }
-            var inspected = 0
-            for case let candidate as URL in enumerator {
-                inspected += 1
-                if inspected > 5000 || result.count >= 2000 { break }
-                guard ["md", "txt", "py"].contains(candidate.pathExtension.lowercased()) else { continue }
-                let resolved = candidate.resolvingSymlinksInPath().standardizedFileURL
-                guard resolved.path.hasPrefix(root.path + "/"),
-                      let values = try? resolved.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]), values.isRegularFile == true,
-                      (values.fileSize ?? maximumFileSize + 1) <= maximumFileSize,
-                      let body = try? text(resolved) else { continue }
-                let relative = String(candidate.path.dropFirst(root.path.count + 1))
-                let id = prefix.isEmpty ? candidate.deletingPathExtension().lastPathComponent : prefix + relative
-                let title = body.split(separator: "\n").first(where: { $0.hasPrefix("# ") }).map { String($0.dropFirst(2)) } ?? candidate.lastPathComponent
-                result.append(Entry(id: id, title: title, group: group, url: resolved))
-            }
-        }
-        return result.sorted { $0.id < $1.id }
+    func setLimit(_ limit: Int, for id: UUID) {
+        guard accessError == nil else { return }
+        guard KnowledgeCollection.allowedLimits.contains(limit), let index = collections.firstIndex(where: { $0.id == id }) else { return }
+        collections[index].dailyCharacterLimit = limit; saveCollections()
     }
-    private func text(_ url: URL) throws -> String {
-        let handle = try FileHandle(forReadingFrom: url)
-        defer { try? handle.close() }
-        let data = try handle.read(upToCount: maximumFileSize + 1) ?? Data()
-        guard data.count <= maximumFileSize, let text = String(data: data, encoding: .utf8) else {
-            throw AutomationRouteError(code: "unsupported_reference", message: "资料需为不超过 512 KiB 的 UTF-8 文本。")
+    func resetBudget(for id: UUID) { guard accessError == nil else { return }; access.resetBudget(collectionID: id); saveAccess() }
+    func recoverAccess() {
+        for key in [collectionKey, accessKey] {
+            if let original = defaults.object(forKey: key) { defaults.set(original, forKey: key + ".recoveryBackup") }
         }
-        return text
+        collections = collections.map { value in var value = value; value.isEnabled = false; return value }
+        access = ControlledKnowledgeAccess(); accessError = nil
+        saveCollections(); saveAccess()
+    }
+    func remaining(for collection: KnowledgeCollection) -> Int {
+        max(0, collection.dailyCharacterLimit - access.usedCharacters(collectionID: collection.id))
+    }
+    func collectionName(_ id: UUID) -> String { collections.first { $0.id == id }?.name ?? "已移除集合" }
+    func search(query: String, purpose: String? = nil) throws -> JSONValue {
+        verifyPersistedAccess()
+        if let accessError {
+            var result = try access.search(query: query, collections: [], builtinRoot: builtinRoot).objectValue ?? [:]
+            result["privateNotice"] = .string(accessError)
+            result["privateAccessError"] = .string("knowledge_storage_unavailable")
+            return .object(result)
+        }
+        defer { saveAccess() }
+        return try access.search(query: query, purpose: purpose, collections: collections, builtinRoot: builtinRoot)
+    }
+    func read(id: String, offset: Int, purpose: String? = nil) throws -> JSONValue {
+        verifyPersistedAccess()
+        if id.hasPrefix("excerpt-"), let accessError { throw KnowledgeAccessError("knowledge_storage_unavailable", accessError) }
+        defer { saveAccess() }
+        return try access.read(id: id, offset: offset, purpose: purpose, collections: collections, builtinRoot: builtinRoot)
+    }
+    private func saveCollections() {
+        guard accessError == nil else { return }
+        if let data = try? JSONEncoder().encode(collections) { defaults.set(data, forKey: collectionKey) }
+    }
+    private func verifyPersistedAccess() {
+        guard accessError == nil else { return }
+        guard let stateData = defaults.data(forKey: accessKey), let savedState = try? JSONDecoder().decode(KnowledgeAccessState.self, from: stateData),
+              savedState == access.state,
+              let collectionData = defaults.data(forKey: collectionKey), let savedCollections = try? JSONDecoder().decode([KnowledgeCollection].self, from: collectionData),
+              savedCollections == collections else {
+            accessError = "集合授权或额度记录在应用外发生变化或无法读取，私有查询已暂停，原记录仍保留。"
+            return
+        }
+    }
+    private func saveAccess() {
+        guard accessError == nil else { return }
+        if let data = try? JSONEncoder().encode(access.state) { defaults.set(data, forKey: accessKey) }
+        audit = access.state.audit
     }
 }

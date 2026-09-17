@@ -36,10 +36,10 @@ import LingxiCore
         guard let id = note.profileID else { return false }
         guard let profile = profiles.first(where: { $0.id == id }) else { return true }
         guard let revision = note.profileRevision else { return note.kind == .insight }
-        return (try? AutomationSnapshot.revision(profile)) != revision
+        return (try? profile.analysisRevision()) != revision
     }
     func latestAssessment(for profile: BirthProfile) -> DayNote? {
-        guard let revision = try? AutomationSnapshot.revision(profile) else { return nil }
+        guard let revision = try? profile.analysisRevision() else { return nil }
         return notes.filter { $0.kind == .insight && $0.profileID == profile.id && $0.profileRevision == revision && $0.strengthAssessment != nil }
             .max { $0.updatedAt < $1.updatedAt }
     }

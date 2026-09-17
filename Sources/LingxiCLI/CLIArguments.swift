@@ -120,7 +120,7 @@ let cliHelp = """
 
 参数：
   --profile ID --date YYYY-MM-DD --id ID --from DATE --to DATE
-  --revision REV --query TEXT --limit N
+  --revision REV --query TEXT --purpose TEXT --limit N
   --input FILE|-                     JSON 参数对象；- 表示标准输入
   --param KEY=JSON                    显式传递 JSON 类型的单个参数
   --request-id ID                     所有写入命令必需；重试请复用编号

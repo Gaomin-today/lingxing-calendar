@@ -49,6 +49,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     let calendar = CalendarEngine()
     let birthProfiles: BirthProfileStore
     let dayNotes: DayNoteStore
+    let milestones: MilestoneStore
     @Published var showingAutomation = false
     @Published var showingAppearance = false
     @Published var agentTask: AgentTaskRequest?
@@ -65,6 +66,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     private var profileObservation: AnyCancellable?
     private var noteObservation: AnyCancellable?
     private var appearanceObservation: AnyCancellable?
+    private var milestoneObservation: AnyCancellable?
     private var strengthCache: [UUID: (BirthProfile, StrengthAssessmentReport)] = [:]
     private var hexagramCache: (BirthProfile, Date, Result<HeluoReport, Error>)?
     private var systemRevision = 0
@@ -91,6 +93,8 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         birthProfiles = BirthProfileStore(fileURL: profileURL)
         let noteURL = dataURL.deletingLastPathComponent().appendingPathComponent(Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview" ? "preview-notes.json" : "notes.json")
         dayNotes = DayNoteStore(fileURL: noteURL)
+        let milestoneURL = dataURL.deletingLastPathComponent().appendingPathComponent(Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview" ? "preview-milestones.json" : "milestones.json")
+        milestones = MilestoneStore(fileURL: milestoneURL)
         do { events = try repository.load() }
         catch { storageError = "本地日程读取失败，已保留原文件。\n\(error.localizedDescription)"; saveBlocked = true }
         notifications.onStatus = { [weak self] text in self?.notificationStatus = text }
@@ -108,6 +112,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         noteObservation = dayNotes.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         appearanceObservation = AppearanceStore.shared.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        milestoneObservation = milestones.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         system.onChange = { [weak self] in self?.scheduleSystemReload() }
         Task { await refreshNotifications(requestPermission: false); await reloadSystemData() }
     }
@@ -143,6 +148,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         return scheduler.occurrences(of: allEvents, from: from, to: calendar.gregorian.date(byAdding: .day, value: 1, to: from)!)
     }
     func select(_ date: Date) { selectedDate = date; visibleMonth = date }
+    func goHome() { select(Date()); section = "我的今天" }
     private var cachedNatalProfile: BirthProfile?
     private var cachedNatalCharts: [FourPillarsChart] = []
     var activeNatalCharts: [FourPillarsChart] {

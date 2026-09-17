@@ -54,6 +54,8 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
     /// Optional so existing local archives remain readable without migration.
     public var luckGender: LuckGender?
     public var strengthAssumption: BaziStrengthAssumption?
+    /// Opt-in homepage birthday tracking; nil preserves the default-off legacy behavior.
+    public var birthdayTracking: BirthdayTracking?
 
     public static let supportedYears = 1901...2099
     public static let repeatedTimePolicyDescription = "当地时钟回拨造成重复时刻时，采用该时刻第一次出现所对应的时间；请核对出生记录。"
@@ -64,7 +66,8 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
         birthMinute: Int = 0, birthTimeKnown: Bool = false,
         timeZoneIdentifier: String = "Asia/Shanghai", birthplace: String = "",
         dayBoundary: BirthDayBoundary = .midnight,
-        luckGender: LuckGender? = nil, strengthAssumption: BaziStrengthAssumption? = nil
+        luckGender: LuckGender? = nil, strengthAssumption: BaziStrengthAssumption? = nil,
+        birthdayTracking: BirthdayTracking? = nil
     ) {
         self.id = id
         self.name = name
@@ -79,6 +82,16 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
         self.dayBoundary = dayBoundary
         self.luckGender = luckGender
         self.strengthAssumption = strengthAssumption
+        self.birthdayTracking = birthdayTracking
+    }
+
+    /// Analysis identity deliberately excludes presentation/reminder preferences.
+    /// A nil tracking field encodes exactly like legacy profiles, preserving old
+    /// analysis receipts while full profile revisions still protect every edit.
+    public func analysisRevision() throws -> String {
+        var analysisProfile = self
+        analysisProfile.birthdayTracking = nil
+        return try AutomationSnapshot.revision(analysisProfile)
     }
 
     public func validate() throws { _ = try resolution() }

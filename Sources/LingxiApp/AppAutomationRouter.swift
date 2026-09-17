@@ -33,6 +33,8 @@ struct AutomationRouteError: Error {
             return .success(request: request, result: try await read(request.method, params))
         } catch let error as AutomationRouteError {
             return .failure(request: request, code: error.code, message: error.message, details: error.details)
+        } catch let error as KnowledgeAccessError {
+            return .failure(request: request, code: error.code, message: error.message)
         } catch let error as AutomationMutationJournalError {
             return .failure(request: request, code: error == .requestIDConflict ? "request_id_conflict" : "receipt_error", message: error.localizedDescription)
         } catch {
@@ -116,20 +118,23 @@ struct AutomationRouteError: Error {
             return try noteEnvelope(note)
         case "knowledge.search":
             if let query = p["query"], query.stringValue == nil { throw problem("invalid_field", "query 需要字符串。") }
-            return try knowledge.search(query: p["query"]?.stringValue ?? "")
-        case "knowledge.read": return try knowledge.read(id: required(p, "id"), offset: integer(p, "offset") ?? 0)
+            if let purpose = p["purpose"], purpose.stringValue == nil { throw problem("invalid_field", "purpose 需要字符串。") }
+            return try knowledge.search(query: p["query"]?.stringValue ?? "", purpose: p["purpose"]?.stringValue)
+        case "knowledge.read":
+            if let purpose = p["purpose"], purpose.stringValue == nil { throw problem("invalid_field", "purpose 需要字符串。") }
+            return try knowledge.read(id: required(p, "id"), offset: integer(p, "offset") ?? 0, purpose: p["purpose"]?.stringValue)
         case "open.day", "open.chart", "open.event", "open.journal":
             if method == "open.event" {
                 let id = try identifier(required(p, "id"))
                 guard let event = store.allEvents.first(where: { $0.id == id }) ?? queriedEvents[id] else { throw problem("not_found", "未找到事项；Apple 事项需先查询其日期范围。") }
-                store.select(event.start); store.section = "月历"; store.editorEvent = event
+                store.select(event.start); store.section = "日历"; store.editorEvent = event
             } else if method == "open.journal" {
                 let item = try note(p); store.select(try civilDate(item.date)); store.highlightedNoteID = item.id
                 if let pid = item.profileID, store.birthProfiles.profiles.contains(where: { $0.id == pid }) { store.birthProfiles.activeID = pid }
                 store.section = "日笺"
             } else if method == "open.chart" {
                 let item = try profile(p); store.birthProfiles.activeID = item.id; store.section = "四柱与八字"; store.baziPage = .natal
-            } else { store.select(try civilDate(required(p, "date"))); store.section = "月历" }
+            } else { store.select(try civilDate(required(p, "date"))); store.section = "日历" }
             store.showMainAction?()
             return .object(["opened": .bool(true)])
         default: throw problem("unknown_method", "未知命令 \(method)。请先运行 capabilities。")
@@ -256,7 +261,7 @@ struct AutomationRouteError: Error {
                 for key in ["name", "birthYear", "birthMonth", "birthDay", "birthTimeKnown", "timeZoneIdentifier"] { guard p[key] != nil else { throw problem("missing_field", "缺少 \(key)。") } }
                 value = BirthProfile(id: id)
             }
-            let allowed = Set(["name", "birthYear", "birthMonth", "birthDay", "birthHour", "birthMinute", "birthTimeKnown", "timeZoneIdentifier", "birthplace", "dayBoundary", "luckGender", "strengthAssumption"])
+            let allowed = Set(["name", "birthYear", "birthMonth", "birthDay", "birthHour", "birthMinute", "birthTimeKnown", "timeZoneIdentifier", "birthplace", "dayBoundary", "luckGender", "strengthAssumption", "birthdayTracking"])
             value = try patched(value, params: p, allowed: allowed)
             let previouslyKnown = old?["birthTimeKnown"]?.boolValue ?? false
             if !previouslyKnown && value.birthTimeKnown && (p["birthHour"] == nil || p["birthMinute"] == nil) { throw problem("missing_field", "从未知改为已知出生时刻，需要显式 birthHour 与 birthMinute。") }
@@ -293,9 +298,11 @@ struct AutomationRouteError: Error {
             if let pid = value.profileID {
                 let person = try profile(["profile": .string(pid.uuidString)])
                 let revision = try AutomationSnapshot.revision(person)
+                let analysisRevision = try person.analysisRevision()
                 if value.kind == .insight {
-                    guard value.profileRevision == revision else { throw problem("profile_revision_conflict", "分析需基于当前档案；先读取 profiles show，再填写 profileRevision。") }
+                    guard value.profileRevision == revision || value.profileRevision == analysisRevision else { throw problem("profile_revision_conflict", "分析需基于当前档案；先读取 profiles show，再填写 analysisRevision 为 profileRevision。") }
                 }
+                if value.profileRevision == revision || value.profileRevision == analysisRevision { value.profileRevision = analysisRevision }
             }
             try value.validate(); desired = try .from(value)
         }
@@ -354,7 +361,7 @@ struct AutomationRouteError: Error {
         let id = try identifier(required(p, "id"))
         guard let value = store.dayNotes.notes.first(where: { $0.id == id }) else { throw problem("not_found", "没有找到这篇日笺。") }; return value
     }
-    private func profileEnvelope(_ profile: BirthProfile) throws -> JSONValue { .object(["profile": try .from(profile), "revision": .string(try AutomationSnapshot.revision(profile))]) }
+    private func profileEnvelope(_ profile: BirthProfile) throws -> JSONValue { .object(["profile": try .from(profile), "revision": .string(try AutomationSnapshot.revision(profile)), "analysisRevision": .string(try profile.analysisRevision())]) }
     private func eventEnvelope(_ event: CalendarEvent) throws -> JSONValue { .object(["event": try .from(event), "revision": .string(try AutomationSnapshot.revision(event)), "cliWritable": .bool(!event.isExternal)]) }
     private func noteEnvelope(_ note: DayNote, includeBody: Bool = true) throws -> JSONValue {
         var value = try JSONValue.from(note).objectValue!
@@ -437,12 +444,12 @@ struct AutomationRouteError: Error {
             "writeContract": .string("写入必填 request_id；更新/删除必填 id 与 revision。相同请求重试使用同ID同参数。已完成的重放返回历史凭据，查询记录可确认当前状态。"),
             "dateContract": .string("date/from/to 为 YYYY-MM-DD（Asia/Shanghai）；start/end 为带时区的 ISO8601。from 含、to 不含。calendar/context 默认正午，可用 at=HH:mm。"),
             "eventCreate": .string("title,start必填；end默认一小时后，reminderMinutes默认null；可填end,notes,isTask,isAllDay,repeatRule(none/daily/weekly),reminderMinutes,taskHasDueDate,taskDueHasTime,location；destination只接受local。"),
-            "profileCreate": .string("name,birthYear,birthMonth,birthDay,birthTimeKnown,timeZoneIdentifier必填；已知时刻还需birthHour,birthMinute；可填birthplace,dayBoundary(midnight/ziHour23),luckGender(male/female),strengthAssumption(unspecified/strong/weak)。"),
-            "noteCreate": .string("journal create / insights save：date,title,body必填；可填profileID,author,profileRevision；insight关联档案需当前profileRevision，strengthAssessment为可选strong/weak/unspecified；来源固定agent。"),
+            "profileCreate": .string("name,birthYear,birthMonth,birthDay,birthTimeKnown,timeZoneIdentifier必填；已知时刻还需birthHour,birthMinute；可填birthplace,dayBoundary(midnight/ziHour23),luckGender(male/female),strengthAssumption(unspecified/strong/weak)、birthdayTracking(null默认不显示/solar/lunar，仅在用户明确要求时设置)。"),
+            "noteCreate": .string("journal create / insights save：date,title,body必填；可填profileID,author,profileRevision；insight关联档案的profileRevision优先填profiles show.analysisRevision；旧调用仍接受当前revision，服务端归一保存；strengthAssessment为可选strong/weak/unspecified；来源固定agent。"),
             "profileSelector": .string("chart/luck/strength/hexagrams/context使用profile=UUID；profiles show可用id。读取不会改变当前UI档案。"),
             "personalAnalysis": .string("strength show返回本地普通扶抑初判、证据、规则版本；每日解读优先手动覆盖，其次有效Agent分析，再用本地初判。context包含nativeStrength与hexagrams。"),
             "hexagrams": .string("hexagrams show必填profile,date，可填at=HH:mm（北京时间参考，默认12:00）；返回先后天和立春年/节月/六日卦、有效时段及规则。卦的自然日按档案出生时区换日，缺时刻或性别不猜补。"),
-            "knowledge": .string("search query可省略以列出条目；read id必填，offset按字符计；应用的外部Agent面板可添加本机技能文件夹。"),
+            "knowledge": .string("内置说明可空query列目录；私有集合由用户在应用逐一启用，search需query与purpose，仅返回有限片段和临时ID；read需同一purpose，offset按字符计，不返回私有路径和源码。"),
             "notes": .string("list仅返回摘要，可按date/profile筛选并传offset/limit。show读取正文；insights save提供id+revision时更新。"),
             "restrictedWrites": .string("create不接受id/revision，由应用生成新ID；delete和tasks.complete仅接受id/revision；tasks.complete只完成已有待办。"),
             "appleWrites": .bool(false), "notificationContract": .string("保存成功和通知送达分别报告；CLI不触发系统授权弹窗。请在应用设置开启通知。")])

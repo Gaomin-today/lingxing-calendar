@@ -13,7 +13,7 @@ struct DateJumpButton: View {
             HStack(spacing: 8) {
                 Text(title).font(.system(size: large ? 27 : 15, weight: .medium, design: .serif))
                 Image(systemName: "chevron.down").font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.secondary)
-            }.contentShape(Rectangle())
+            }.frame(minHeight: 32).contentShape(Rectangle())
         }.buttonStyle(.plain).help("选择年份、月份或直接跳转日期")
             .accessibilityLabel("选择日期，\(title)")
             .popover(isPresented: $showing) {
@@ -37,21 +37,27 @@ private struct DateJumpPicker: View {
             HStack {
                 Text("去往某一天").font(.system(size: 18, weight: .medium, design: .serif))
                 Spacer()
-                Button("今天") { choose(Date()) }.buttonStyle(.plain).foregroundStyle(Theme.jade)
+                Button { choose(Date()) } label: {
+                    Text("今天").padding(.horizontal, 8).frame(minHeight: 30).contentShape(Rectangle())
+                }.buttonStyle(.plain).foregroundStyle(Theme.jade)
             }
             HStack {
                 Picker("年份", selection: Binding(get: { year }, set: { setMonth(year: $0, month: month) })) {
                     ForEach(1901...2099, id: \.self) { Text(String($0) + " 年").tag($0) }
                 }.frame(width: 140)
                 Spacer()
-                Button { shift(-1) } label: { Image(systemName: "chevron.left") }.disabled(year == 1901 && month == 1).accessibilityLabel("跳转面板上个月")
+                Button { shift(-1) } label: {
+                    Image(systemName: "chevron.left").frame(width: 30, height: 30).contentShape(Rectangle())
+                }.disabled(year == 1901 && month == 1).accessibilityLabel("跳转面板上个月")
                 Text("\(month)月").frame(width: 32)
-                Button { shift(1) } label: { Image(systemName: "chevron.right") }.disabled(year == 2099 && month == 12).accessibilityLabel("跳转面板下个月")
+                Button { shift(1) } label: {
+                    Image(systemName: "chevron.right").frame(width: 30, height: 30).contentShape(Rectangle())
+                }.disabled(year == 2099 && month == 12).accessibilityLabel("跳转面板下个月")
             }.buttonStyle(.plain)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 6), spacing: 6) {
                 ForEach(1...12, id: \.self) { value in
                     Button { setMonth(year: year, month: value) } label: {
-                        Text("\(value)月").font(.system(size: 11)).frame(maxWidth: .infinity).padding(.vertical, 7)
+                        Text("\(value)月").font(.system(size: 11)).frame(maxWidth: .infinity).frame(minHeight: 30).contentShape(Rectangle())
                             .background(value == month ? Theme.softJade : Theme.paper, in: RoundedRectangle(cornerRadius: 6))
                     }.buttonStyle(.plain)
                 }

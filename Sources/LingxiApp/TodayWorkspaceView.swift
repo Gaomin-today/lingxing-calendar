@@ -4,6 +4,18 @@ import LingxiCore
 struct TodayWorkspaceView: View {
     @ObservedObject var store: AppStore
     @State private var editingProfile: BirthProfile?
+    @StateObject private var dashboard = DashboardLayoutStore()
+    @State private var layoutDraft: DashboardLayout?
+    @State private var dragging: DashboardComponent?
+    @State private var cardFrames: [DashboardComponent: CGRect] = [:]
+    @State private var editingMilestone: Milestone?
+    @State private var layoutFeedback: String?
+    private var isArranging: Bool { layoutDraft != nil }
+    private var layout: DashboardLayout { layoutDraft ?? dashboard.layout }
+    private var displayedComponents: [DashboardComponent] {
+        if isArranging { return layout.order }
+        return layout.visible.filter { person != nil || ![.hexagram, .personalDay].contains($0) }
+    }
     private var person: BirthProfile? { store.birthProfiles.activeProfile }
     private var reading: PersonalDailyReadingReport? {
         guard let profile = person, let natal = store.activeNatalChart,
@@ -16,17 +28,16 @@ struct TodayWorkspaceView: View {
             Divider().overlay(Theme.line)
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    if let profile = person {
-                        HStack(alignment: .top, spacing: 18) {
-                            PersonalHexagramSummary(store: store, profile: profile).frame(maxWidth: .infinity)
-                            personalDay(profile).frame(maxWidth: .infinity)
+                    if isArranging { arrangementBar }
+                    if person == nil && !isArranging { welcome }
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 18, alignment: .top), GridItem(.flexible(), alignment: .top)], alignment: .leading, spacing: 18) {
+                        ForEach(displayedComponents) { component in
+                            dashboardCard(component)
+                                .background(GeometryReader { geometry in
+                                    Color.clear.preference(key: DashboardFramesKey.self, value: [component: geometry.frame(in: .named("dashboard-layout"))])
+                                })
                         }
-                    } else { welcome }
-                    HStack(alignment: .top, spacing: 18) {
-                        agenda.frame(maxWidth: .infinity)
-                        preparation.frame(maxWidth: .infinity)
-                    }
-                    notes
+                    }.coordinateSpace(name: "dashboard-layout").onPreferenceChange(DashboardFramesKey.self) { cardFrames = $0 }
                     HStack {
                         Label("历法由本机计算 · 传统解释供自我探索", systemImage: "leaf").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                         Spacer()
@@ -35,6 +46,7 @@ struct TodayWorkspaceView: View {
                 }.padding(28)
             }
         }.sheet(item: $editingProfile) { BirthProfileEditor(profiles: store.birthProfiles, draft: $0) }
+            .sheet(item: $editingMilestone) { MilestoneEditor(store: store.milestones, draft: $0) }
     }
     private var heading: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -62,8 +74,81 @@ struct TodayWorkspaceView: View {
                     }.labelsHidden().frame(maxWidth: 180)
                 }
                 Button { store.prepareAgentTask(.daily) } label: { Label("交给我的 Agent", systemImage: "sparkles") }.buttonStyle(QuietButton()).font(.system(size: 11))
+                Button { layoutDraft = dashboard.layout; layoutFeedback = nil } label: { Label("自定义首页", systemImage: "slider.horizontal.3") }.buttonStyle(QuietButton()).font(.system(size: 11)).disabled(isArranging)
+                Menu {
+                    Button("新建日程", systemImage: "calendar.badge.plus") { store.newEvent() }
+                    Button("新建倒计时", systemImage: "hourglass.badge.plus") { createMilestone(.countdown) }
+                    Button("新建纪念日", systemImage: "heart") { createMilestone(.anniversary) }
+                } label: { Label("新建", systemImage: "plus") }.menuStyle(.borderlessButton).fixedSize().padding(.horizontal, 12).padding(.vertical, 8).background(Theme.softJade, in: RoundedRectangle(cornerRadius: 9))
             }
         }
+    }
+    private var arrangementBar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("把首页排成你喜欢的样子", systemImage: "hand.draw").font(.system(size: 14, weight: .medium))
+                Spacer()
+                Button("日程优先") { layoutDraft = .agendaFirst }.buttonStyle(QuietButton())
+                Button("恢复默认") { layoutDraft = DashboardLayout() }.buttonStyle(QuietButton())
+                Button("取消") { layoutDraft = nil; dragging = nil }.buttonStyle(QuietButton())
+                Button("保存布局") { if let layoutDraft { dashboard.save(layoutDraft) }; layoutDraft = nil; dragging = nil }.buttonStyle(JadeButton())
+            }.font(.system(size: 11))
+            Text(layoutFeedback ?? "拖动卡片顶部的手柄来排序，也可用左右箭头移动。隐藏只收起卡片，不删除任何内容。")
+                .font(.system(size: 11)).foregroundStyle(Theme.secondary)
+        }.padding(16).background(Theme.softJade, in: RoundedRectangle(cornerRadius: 12))
+    }
+    private func dashboardCard(_ component: DashboardComponent) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isArranging {
+                HStack(spacing: 5) {
+                    Label(component.title, systemImage: "line.3.horizontal")
+                        .font(.system(size: 11, weight: .medium)).padding(.vertical, 9).padding(.horizontal, 8).contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 5, coordinateSpace: .named("dashboard-layout"))
+                            .onChanged { value in
+                                dragging = component
+                                if let target = layout.order.first(where: { $0 != component && cardFrames[$0]?.contains(value.location) == true }) {
+                                    withAnimation(.easeInOut(duration: 0.16)) { layoutDraft?.move(component, before: target) }
+                                }
+                            }.onEnded { _ in dragging = nil })
+                        .help("拖动以调整位置").accessibilityLabel("拖动排列" + component.title)
+                    Spacer(minLength: 0)
+                    Button { layoutDraft?.move(component, by: -1) } label: { Image(systemName: "arrow.left").frame(width: 28, height: 28).contentShape(Rectangle()) }
+                        .disabled(layout.order.first == component).accessibilityLabel("前移" + component.title)
+                    Button { layoutDraft?.move(component, by: 1) } label: { Image(systemName: "arrow.right").frame(width: 28, height: 28).contentShape(Rectangle()) }
+                        .disabled(layout.order.last == component).accessibilityLabel("后移" + component.title)
+                    Button {
+                        let changed = layoutDraft?.setVisible(layout.hidden.contains(component), for: component) ?? false
+                        layoutFeedback = changed ? nil : "至少保留一个首页组件。"
+                    } label: { Image(systemName: layout.hidden.contains(component) ? "eye.slash" : "eye").frame(width: 28, height: 28).contentShape(Rectangle()) }
+                        .accessibilityLabel((layout.hidden.contains(component) ? "显示" : "隐藏") + component.title)
+                }.buttonStyle(.plain).foregroundStyle(Theme.jade)
+            }
+            componentContent(component).allowsHitTesting(!isArranging).opacity(isArranging && layout.hidden.contains(component) ? 0.3 : 1)
+        }
+        .padding(isArranging ? 8 : 0)
+        .background { if isArranging { RoundedRectangle(cornerRadius: 16).fill(Theme.softJade.opacity(dragging == component ? 0.75 : 0.3)) } }
+        .contentShape(Rectangle())
+    }
+    @ViewBuilder private func componentContent(_ component: DashboardComponent) -> some View {
+        switch component {
+        case .hexagram:
+            if let profile = person { PersonalHexagramSummary(store: store, profile: profile) }
+            else { profilePlaceholder("我的今日卦") }
+        case .personalDay:
+            if let profile = person { personalDay(profile) }
+            else { profilePlaceholder("这一天，与你") }
+        case .agenda: agenda
+        case .preparation: preparation
+        case .milestones: MilestoneHomeCard(store: store.milestones, profiles: store.birthProfiles, selectedDate: store.selectedDate, onSelectDate: { store.select($0); store.section = "日历" })
+        case .notes: notes
+        }
+    }
+    private func profilePlaceholder(_ title: String) -> some View {
+        Card { VStack(alignment: .leading, spacing: 10) { Text(title).font(.system(size: 19, design: .serif)); Text("建立档案后显示个人内容").font(.system(size: 12)).foregroundStyle(Theme.secondary) }.frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading) }
+    }
+    private func createMilestone(_ kind: MilestoneKind) {
+        do { editingMilestone = try Milestone.draft(kind: kind, on: store.selectedDate) }
+        catch { store.status = error.localizedDescription }
     }
     private var welcome: some View {
         Card {
@@ -118,7 +203,7 @@ struct TodayWorkspaceView: View {
                 HStack {
                     Button("添加安排") { store.newEvent() }.buttonStyle(QuietButton())
                     Spacer()
-                    Button("查看时间轴") { store.calendarMode = .day; store.section = "月历" }.buttonStyle(.plain).foregroundStyle(Theme.jade)
+                    Button("查看时间轴") { store.calendarMode = .day; store.section = "日历" }.buttonStyle(.plain).foregroundStyle(Theme.jade)
                 }.font(.system(size: 11)).padding(.top, 6)
                 if store.pendingTasks.contains(where: { !$0.hasDueDate }) {
                     Button("还有未设期限的待办，去看看") { store.section = "待办" }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Theme.secondary)
@@ -139,7 +224,7 @@ struct TodayWorkspaceView: View {
                 Button { store.prepareAgentTask(event == nil ? .daily : .event, event: event, on: store.selectedDate) } label: {
                     Label("让我的 Agent 结合详情分析", systemImage: "sparkles")
                 }.buttonStyle(QuietButton()).font(.system(size: 11))
-                Text("分析回写后，会在下方的日笺中出现。").font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                Button("分析回写后，可到日笺查看") { store.section = "日笺" }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.jade).padding(.vertical, 4)
             }
         }
     }
@@ -162,4 +247,11 @@ struct TodayWorkspaceView: View {
         }
     }
     private func step(_ amount: Int) { if let date = store.calendar.gregorian.date(byAdding: .day, value: amount, to: store.selectedDate) { store.select(date) } }
+}
+
+private struct DashboardFramesKey: PreferenceKey {
+    static let defaultValue: [DashboardComponent: CGRect] = [:]
+    static func reduce(value: inout [DashboardComponent: CGRect], nextValue: () -> [DashboardComponent: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
 }

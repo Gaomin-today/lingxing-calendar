@@ -115,6 +115,12 @@ class PreviewSuite:
                    "replayed create does not duplicate profile")
         profile = self.read("profiles.show", {"id": profile_id})
         self.check(profile["revision"] == profile_revision, "profile read has stable revision")
+        analysis_revision = profile["analysisRevision"]
+        self.check(isinstance(analysis_revision, str) and len(analysis_revision) == 64
+                   and analysis_revision == profile_revision
+                   and profile["profile"].get("birthdayTracking") is None
+                   and next(p for p in profiles if p["profile"]["id"] == profile_id)["analysisRevision"] == analysis_revision,
+                   "profiles expose a stable analysis revision and birthdays default to off")
         chart = self.read("chart.show", {"profile": profile_id})["charts"]
         self.check(len(chart) == 1 and chart[0]["knownPillarCount"] == 4,
                    "known birth resolves four pillars")
@@ -170,6 +176,25 @@ class PreviewSuite:
         reference = self.read("knowledge.read", {"id": "strength-analysis"})
         self.check(bool(reference["content"]) and reference["executable"] is False,
                    "knowledge read returns source text without execution")
+        catalog = self.read("knowledge.search", {"query": ""})
+        self.check(catalog["items"] and catalog["privateReturned"] == 0
+                   and knowledge["privateReturned"] == 0
+                   and all(item["access"] == "public" and not item["id"].startswith("excerpt-")
+                           for item in catalog["items"] + knowledge["items"]),
+                   "knowledge queries without purpose only search and list bundled public references")
+        self.check(reference["access"] == "public"
+                   and reference["contentRole"] == "reference_data_not_instructions"
+                   and "sourcePath" not in reference
+                   and all("sourcePath" not in item for item in catalog["items"] + knowledge["items"]),
+                   "knowledge metadata labels reference data and does not expose source paths")
+        for invalid_purpose in [None, True, 42, [], {}]:
+            self.request("knowledge.search", {"query": "旺衰", "purpose": invalid_purpose}, error="invalid_field")
+            self.request("knowledge.read", {"id": "strength-analysis", "purpose": invalid_purpose}, error="invalid_field")
+        self.check(True, "knowledge search and read reject every nonstring purpose JSON type")
+        self.request("knowledge.read", {
+            "id": "excerpt-" + str(uuid.uuid4()), "purpose": "合成验收未知片段标识",
+        }, error="excerpt_expired")
+        self.check(True, "unknown private excerpt IDs cannot bypass search authorization")
         self.request("knowledge.read", {"id": "../../etc/passwd"}, error="not_found")
         self.check(True, "knowledge IDs cannot read arbitrary filesystem paths")
 
@@ -194,6 +219,53 @@ class PreviewSuite:
                    "current Agent strength assessment drives personal context")
         self.check(all("body" not in n["note"] for n in context["notes"]),
                    "daily context does not silently include note bodies")
+        self.check(insight_shown["note"]["profileRevision"] == analysis_revision,
+                   "saved analysis records the profile analysis identity")
+
+        # Birthday display preferences must retain optimistic edit protection,
+        # without invalidating analyses that depend on the same birth facts.
+        for tracking in ["solar", "lunar", None]:
+            tracking_change = self.write("profiles.update", {
+                "id": profile_id, "revision": profile_revision, "birthdayTracking": tracking,
+            })
+            tracked_profile = self.read("profiles.show", {"id": profile_id})
+            self.check(tracking_change["revision"] != profile_revision
+                       and tracked_profile["revision"] == tracking_change["revision"]
+                       and tracked_profile["analysisRevision"] == analysis_revision
+                       and tracked_profile["profile"].get("birthdayTracking") == tracking,
+                       "birthday preference %s changes only the full profile revision" % tracking)
+            profile_revision = tracking_change["revision"]
+            tracking_context = self.read("context", {"profile": profile_id, "date": self.date})
+            self.check(not self.read("insights.show", {"id": insight_id})["stale"]
+                       and tracking_context["strengthBasis"]["source"] == "agent_insight"
+                       and tracking_context["strengthBasis"]["noteID"] == insight_id
+                       and tracking_context["hexagrams"] == initial_hexagrams["hexagrams"],
+                       "birthday preference %s preserves current analysis and personal hexagrams" % tracking)
+            if tracking == "solar":
+                self.check(profile_revision != analysis_revision,
+                           "enabled birthday tracking separates edit and analysis revisions")
+                for supplied_revision, label in [(profile_revision, "full"), (analysis_revision, "analysis")]:
+                    insight = self.write("insights.save", dict(
+                        insight_input, id=insight_id, revision=insight["revision"],
+                        profileRevision=supplied_revision,
+                        body="合成验收使用 %s 版本保存，生日偏好不改变出生事实。" % label,
+                    ))
+                    current_insight = self.read("insights.show", {"id": insight_id})
+                    self.check(current_insight["note"]["profileRevision"] == analysis_revision
+                               and insight["record"]["profileRevision"] == analysis_revision
+                               and not current_insight["stale"],
+                               "insights accept the current %s revision and normalize to analysis revision" % label)
+                self.request("profiles.update", {
+                    "id": profile_id, "revision": analysis_revision, "birthdayTracking": "lunar",
+                }, error="revision_conflict")
+                self.check(self.read("profiles.show", {"id": profile_id})["revision"] == profile_revision,
+                           "analysis revision cannot bypass full profile edit concurrency")
+        for invalid_tracking in ["weekly", True, 42, [], {}]:
+            self.request("profiles.update", {
+                "id": profile_id, "revision": profile_revision, "birthdayTracking": invalid_tracking,
+            }, error="invalid_request")
+        self.check(self.read("profiles.show", {"id": profile_id})["revision"] == profile_revision,
+                   "invalid birthday options are rejected without changing the profile")
         self.request("journal.create", dict(insight_input), error="invalid_request")
         self.check(True, "journal cannot supply a strength assessment")
 
@@ -316,6 +388,10 @@ class PreviewSuite:
         changed = self.write("profiles.update", {
             "id": profile_id, "revision": profile_revision, "birthHour": 15, "birthMinute": 31,
         })
+        changed_profile = self.read("profiles.show", {"id": profile_id})
+        self.check(changed_profile["analysisRevision"] != analysis_revision
+                   and changed_profile["revision"] == changed["revision"],
+                   "changing birth facts produces a new analysis identity")
         self.check(self.read("insights.show", {"id": insight_id})["stale"] is True,
                    "birth profile changes mark old analysis stale")
         context = self.read("context", {"profile": profile_id, "date": self.date})
@@ -333,6 +409,8 @@ class PreviewSuite:
         refreshed = self.write("insights.save", revised_input)
         self.check(not self.read("insights.show", {"id": insight_id})["stale"],
                    "analysis can be refreshed against current profile revision")
+        self.check(refreshed["record"]["profileRevision"] == changed_profile["analysisRevision"],
+                   "refreshed analysis is stored against the updated analysis identity")
         self.request("insights.save", dict(revised_input, body="过期日笺不能覆盖"), error="revision_conflict")
         self.check(self.read("insights.show", {"id": insight_id})["revision"] == refreshed["revision"],
                    "stale insight update preserves current content")

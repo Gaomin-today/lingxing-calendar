@@ -43,6 +43,9 @@ jobs:
       - name: Verify Apple date conversion without calendar access
         run: zsh scripts/test-apple-codec.sh
 
+      - name: Verify birth profile disk conflict protection
+        run: zsh scripts/test-profile-store.sh
+
       - name: Build release application and bundled CLI
         run: zsh scripts/build-app.sh
 
