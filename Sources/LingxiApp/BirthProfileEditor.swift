@@ -72,6 +72,7 @@ struct BirthProfileEditor: View {
                     birthDateFields
                     locationFields
                     boundaryFields
+                    interpretationFields
                     if let problem = result.problem {
                         feedback(problem, symbol: "exclamationmark.circle", color: Theme.vermilion)
                     }
@@ -196,6 +197,26 @@ struct BirthProfileEditor: View {
             TextField(placeholder, text: value).textFieldStyle(.roundedBorder)
                 .monospacedDigit().accessibilityLabel("出生\(label)")
         }.frame(width: width)
+    }
+
+    private var interpretationFields: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 13) {
+                Text("大运与解读口径").font(.system(size: 13, weight: .medium))
+                Picker("大运排法所用性别", selection: $draft.luckGender) {
+                    Text("暂不填写").tag(nil as LuckGender?)
+                    ForEach(LuckGender.allCases) { Text($0.label).tag(Optional($0)) }
+                }.pickerStyle(.segmented)
+                Text("传统顺逆排运规则需要此项和准确出生时刻；暂不填写也能查看命盘与每日关系。")
+                    .font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                Divider().overlay(Theme.line)
+                Picker("旺衰解读前提", selection: Binding(get: { draft.strengthAssumption ?? .unspecified }, set: { draft.strengthAssumption = $0 })) {
+                    ForEach(BaziStrengthAssumption.allCases) { Text($0.label).tag($0) }
+                }.pickerStyle(.segmented)
+                Text("这是你选用的解读前提，随时可以修改。未确定时展示共同主题与条件说明；不会凭五行数量自动判定身强、身弱。")
+                    .font(.system(size: 11)).foregroundStyle(Theme.secondary)
+            }
+        }
     }
 
     private func feedback(_ message: String, symbol: String, color: Color) -> some View {

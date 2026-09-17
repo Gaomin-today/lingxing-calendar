@@ -20,6 +20,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     @Published var events: [CalendarEvent] = []
     @Published var section = "月历"
     @Published var calendarMode: CalendarDisplayMode = .month
+    @Published var baziPage: BaziPage = .natal
     @Published var showingConnections = false
     @Published var systemEvents: [CalendarEvent] = []
     @Published var systemReminders: [CalendarEvent] = []
@@ -126,6 +127,17 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         return scheduler.occurrences(of: allEvents, from: from, to: calendar.gregorian.date(byAdding: .day, value: 1, to: from)!)
     }
     func select(_ date: Date) { selectedDate = date; visibleMonth = date }
+    private var cachedNatalProfile: BirthProfile?
+    private var cachedNatalCharts: [FourPillarsChart] = []
+    var activeNatalCharts: [FourPillarsChart] {
+        guard let profile = birthProfiles.activeProfile else { return [] }
+        if cachedNatalProfile != profile {
+            cachedNatalCharts = (try? FourPillarsEngine().natalCharts(for: profile)) ?? []
+            cachedNatalProfile = profile
+        }
+        return cachedNatalCharts
+    }
+    var activeNatalChart: FourPillarsChart? { let charts = activeNatalCharts; return charts.count == 1 ? charts.first : nil }
     func moveMonth(_ offset: Int) { visibleMonth = calendar.gregorian.date(byAdding: .month, value: offset, to: visibleMonth)! }
     func movePeriod(_ offset: Int) {
         switch calendarMode {

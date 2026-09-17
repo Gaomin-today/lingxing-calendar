@@ -70,10 +70,51 @@ struct CalendarTests {
             #expect(names.count == 24)
             #expect(Set(names).count == 24)
         }
-        #expect(!(engine.hasSolarTermData(for: date(2028, 9, 7))))
-        #expect(engine.solarTerm(on: date(2028, 9, 7)) == nil)
+        #expect(!(engine.hasSolarTermData(for: date(2100, 9, 7))))
+        #expect(engine.solarTerm(on: date(2100, 9, 7)) == nil)
+        #expect(engine.hasSolarTermData(for: date(2028, 9, 7)))
+        #expect(engine.hasSolarTermData(for: date(1901, 1, 1)))
+        #expect(engine.hasSolarTermData(for: date(2099, 12, 31)))
+        #expect(!(engine.hasSolarTermData(for: date(1900, 12, 31))))
         #expect(engine.hasSolarTermData(for: date(2026, 9, 17)))
         #expect(engine.solarTerm(on: date(2026, 9, 17)) == nil)
+    }
+
+    @Test func testAll72HKOTableDatesRemainUnchanged() throws {
+        let expected: [Int: [Int]] = [
+            2025: [5,20, 3,18, 5,20, 4,20, 5,21, 5,21, 7,22, 7,23, 7,23, 8,23, 7,22, 7,21],
+            2026: [5,20, 4,18, 5,20, 5,20, 5,21, 5,21, 7,23, 7,23, 7,23, 8,23, 7,22, 7,22],
+            2027: [5,20, 4,19, 6,21, 5,20, 6,21, 6,21, 7,23, 8,23, 8,23, 8,23, 7,22, 7,22]
+        ]
+        for (year, days) in expected {
+            let terms = try engine.solarTerms(in: year)
+            #expect(terms.count == 24)
+            for (index, term) in terms.enumerated() {
+                #expect(engine.gregorian.component(.month, from: term.date) == index / 2 + 1)
+                #expect(engine.gregorian.component(.day, from: term.date) == days[index])
+                #expect(engine.solarTerm(on: date(year, index / 2 + 1, days[index])) == term.name)
+            }
+        }
+    }
+
+    @Test func testAll24TermBoundariesIncludeQiAndBracketExactInstant() throws {
+        for term in try engine.solarTerms(in: 2026) {
+            let before = try engine.solarTermContext(at: term.date.addingTimeInterval(-0.1))
+            let exact = try engine.solarTermContext(at: term.date)
+            let after = try engine.solarTermContext(at: term.date.addingTimeInterval(0.1))
+            #expect(before.next == term)
+            #expect(exact.previous == term)
+            #expect(after.previous == term)
+            #expect(exact.next.date > term.date)
+            #expect(exact.onDay == term)
+        }
+        let start = try engine.solarTermContext(at: date(1901, 1, 1, hour: 0))
+        let end = try engine.solarTermContext(at: date(2099, 12, 31, hour: 23))
+        #expect(engine.gregorian.component(.year, from: start.previous.date) == 1900)
+        #expect(engine.gregorian.component(.year, from: end.next.date) == 2100)
+        #expect(throws: FourPillarsError.unsupportedYear) { try engine.solarTerms(in: 2100) }
+        #expect(throws: FourPillarsError.unsupportedYear) { try engine.solarTermContext(at: date(1900, 6, 1)) }
+        #expect(throws: FourPillarsError.invalidInstant) { try engine.solarTermContext(at: Date(timeIntervalSince1970: .nan)) }
     }
 
     @Test func testMonthGridIs42ContiguousDaysBeginningMonday() {
@@ -135,4 +176,17 @@ struct CalendarTests {
             #expect(engine.festivals(on: date(2026, month, day)).contains { $0.id == id })
         }
     }
+
+    @Test func testExpandedCatalogKeepsOriginalIDsAndOrdinaryMonthPolicy() {
+        let original: Set<String> = ["spring-festival", "lantern-festival", "dragon-boat", "qixi", "mid-autumn", "double-ninth", "jade-emperor", "man-cheung", "guanyin-birthday", "pak-tai", "tin-hau", "guanyin-enlightenment"]
+        #expect(original.isSubset(of: Set(FestivalCatalog.all.map(\.id))))
+        #expect(FestivalCatalog.all.count == 24)
+        #expect(engine.festivals(on: date(2025, 5, 1)).contains { $0.id == "manjushri" })
+        #expect(engine.festivals(on: date(2025, 5, 5)).contains { $0.id == "buddha-birthday" })
+        #expect(engine.festivals(on: date(2025, 7, 18)).contains { $0.id == "kwan-ti" })
+        #expect(engine.festivals(on: date(2025, 8, 17)).isEmpty) // 闰六月廿四
+        #expect(engine.festivals(on: date(2026, 3, 20)).contains { $0.id == "dragon-head" })
+        #expect(engine.festivals(on: date(2026, 8, 27)).contains { $0.id == "zhongyuan" })
+    }
+
 }

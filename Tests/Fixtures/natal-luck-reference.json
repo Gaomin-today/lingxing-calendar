@@ -1,0 +1,979 @@
+{
+  "schemaVersion": 1,
+  "dependency": "lunar_python==1.4.8",
+  "sourcesSHA256": {
+    "LocalReferenceSkills/bazi-pro/bazi_chart/engine.py": "81c743ae8d8f78c6b7fa4c56fdafb5176a5888bc8877d88e2be5ffe8a5a79851",
+    "LocalReferenceSkills/bazi-pro/bazi_chart/rules.py": "57ecf97e298ea6341e5da4deb614d014b40bd15caeb26b442d0ad538705ef7db"
+  },
+  "policies": {
+    "details": "Actual bazi_chart.engine.build_chart, standard civil UTC+08:00, no DST, day sect 1.",
+    "luck": "Supplemental lunar_python.EightChar.getYun(gender, 2); the actual skill uses luck sect 1 and therefore is NOT the expected start-time policy.",
+    "intervals": "Only start and first three pillars are borrowed; native half-open exact ten-year boundaries replace the skill's end-minus-one-day logic.",
+    "synthetic": "All records are test inputs, not user birth information. Gender is an explicit traditional rule input."
+  },
+  "cases": [
+    {
+      "id": "1988-02-15-23:30-男",
+      "date": "1988-02-15",
+      "time": "23:30",
+      "gender": "male",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "戊辰",
+          "tenGod": "正印",
+          "stemElement": "土",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "乙",
+              "element": "木",
+              "tenGod": "偏财"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "大林木",
+          "dayMasterStage": "墓",
+          "selfStage": "冠带",
+          "xunKong": "戌亥"
+        },
+        {
+          "id": "month",
+          "pillar": "甲寅",
+          "tenGod": "正财",
+          "stemElement": "木",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "甲",
+              "element": "木",
+              "tenGod": "正财"
+            },
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            }
+          ],
+          "naYin": "大溪水",
+          "dayMasterStage": "胎",
+          "selfStage": "临官",
+          "xunKong": "子丑"
+        },
+        {
+          "id": "day",
+          "pillar": "辛丑",
+          "tenGod": "日主",
+          "stemElement": "金",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "偏印"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            },
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "比肩"
+            }
+          ],
+          "naYin": "壁上土",
+          "dayMasterStage": "养",
+          "selfStage": "养",
+          "xunKong": "辰巳"
+        },
+        {
+          "id": "hour",
+          "pillar": "戊子",
+          "tenGod": "正印",
+          "stemElement": "土",
+          "branchElement": "水",
+          "hiddenStems": [
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "霹雳火",
+          "dayMasterStage": "长生",
+          "selfStage": "胎",
+          "xunKong": "午未"
+        }
+      ],
+      "direction": "forward",
+      "offset": [
+        6,
+        2,
+        26,
+        8
+      ],
+      "startAt": "1994-05-12T07:30:00+08:00",
+      "firstThreePillars": [
+        "乙卯",
+        "丙辰",
+        "丁巳"
+      ],
+      "actualSkillSect1StartForComparison": "1994-05-15 23:30:00"
+    },
+    {
+      "id": "1988-02-15-23:30-女",
+      "date": "1988-02-15",
+      "time": "23:30",
+      "gender": "female",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "戊辰",
+          "tenGod": "正印",
+          "stemElement": "土",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "乙",
+              "element": "木",
+              "tenGod": "偏财"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "大林木",
+          "dayMasterStage": "墓",
+          "selfStage": "冠带",
+          "xunKong": "戌亥"
+        },
+        {
+          "id": "month",
+          "pillar": "甲寅",
+          "tenGod": "正财",
+          "stemElement": "木",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "甲",
+              "element": "木",
+              "tenGod": "正财"
+            },
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            }
+          ],
+          "naYin": "大溪水",
+          "dayMasterStage": "胎",
+          "selfStage": "临官",
+          "xunKong": "子丑"
+        },
+        {
+          "id": "day",
+          "pillar": "辛丑",
+          "tenGod": "日主",
+          "stemElement": "金",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "偏印"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            },
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "比肩"
+            }
+          ],
+          "naYin": "壁上土",
+          "dayMasterStage": "养",
+          "selfStage": "养",
+          "xunKong": "辰巳"
+        },
+        {
+          "id": "hour",
+          "pillar": "戊子",
+          "tenGod": "正印",
+          "stemElement": "土",
+          "branchElement": "水",
+          "hiddenStems": [
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "霹雳火",
+          "dayMasterStage": "长生",
+          "selfStage": "胎",
+          "xunKong": "午未"
+        }
+      ],
+      "direction": "backward",
+      "offset": [
+        3,
+        8,
+        4,
+        0
+      ],
+      "startAt": "1991-10-19T23:30:00+08:00",
+      "firstThreePillars": [
+        "癸丑",
+        "壬子",
+        "辛亥"
+      ],
+      "actualSkillSect1StartForComparison": "1991-10-15 23:30:00"
+    },
+    {
+      "id": "2005-12-23-08:37-男",
+      "date": "2005-12-23",
+      "time": "08:37",
+      "gender": "male",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "乙酉",
+          "tenGod": "偏财",
+          "stemElement": "木",
+          "branchElement": "金",
+          "hiddenStems": [
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "比肩"
+            }
+          ],
+          "naYin": "泉中水",
+          "dayMasterStage": "临官",
+          "selfStage": "绝",
+          "xunKong": "午未"
+        },
+        {
+          "id": "month",
+          "pillar": "戊子",
+          "tenGod": "正印",
+          "stemElement": "土",
+          "branchElement": "水",
+          "hiddenStems": [
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "霹雳火",
+          "dayMasterStage": "长生",
+          "selfStage": "胎",
+          "xunKong": "午未"
+        },
+        {
+          "id": "day",
+          "pillar": "辛巳",
+          "tenGod": "日主",
+          "stemElement": "金",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "庚",
+              "element": "金",
+              "tenGod": "劫财"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            }
+          ],
+          "naYin": "白蜡金",
+          "dayMasterStage": "死",
+          "selfStage": "死",
+          "xunKong": "申酉"
+        },
+        {
+          "id": "hour",
+          "pillar": "壬辰",
+          "tenGod": "伤官",
+          "stemElement": "水",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "乙",
+              "element": "木",
+              "tenGod": "偏财"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "长流水",
+          "dayMasterStage": "墓",
+          "selfStage": "墓",
+          "xunKong": "午未"
+        }
+      ],
+      "direction": "backward",
+      "offset": [
+        5,
+        4,
+        0,
+        10
+      ],
+      "startAt": "2011-04-23T18:37:00+08:00",
+      "firstThreePillars": [
+        "丁亥",
+        "丙戌",
+        "乙酉"
+      ],
+      "actualSkillSect1StartForComparison": "2011-04-23 08:37:00"
+    },
+    {
+      "id": "2005-12-23-08:37-女",
+      "date": "2005-12-23",
+      "time": "08:37",
+      "gender": "female",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "乙酉",
+          "tenGod": "偏财",
+          "stemElement": "木",
+          "branchElement": "金",
+          "hiddenStems": [
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "比肩"
+            }
+          ],
+          "naYin": "泉中水",
+          "dayMasterStage": "临官",
+          "selfStage": "绝",
+          "xunKong": "午未"
+        },
+        {
+          "id": "month",
+          "pillar": "戊子",
+          "tenGod": "正印",
+          "stemElement": "土",
+          "branchElement": "水",
+          "hiddenStems": [
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "霹雳火",
+          "dayMasterStage": "长生",
+          "selfStage": "胎",
+          "xunKong": "午未"
+        },
+        {
+          "id": "day",
+          "pillar": "辛巳",
+          "tenGod": "日主",
+          "stemElement": "金",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "庚",
+              "element": "金",
+              "tenGod": "劫财"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            }
+          ],
+          "naYin": "白蜡金",
+          "dayMasterStage": "死",
+          "selfStage": "死",
+          "xunKong": "申酉"
+        },
+        {
+          "id": "hour",
+          "pillar": "壬辰",
+          "tenGod": "伤官",
+          "stemElement": "水",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "乙",
+              "element": "木",
+              "tenGod": "偏财"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "长流水",
+          "dayMasterStage": "墓",
+          "selfStage": "墓",
+          "xunKong": "午未"
+        }
+      ],
+      "direction": "forward",
+      "offset": [
+        4,
+        5,
+        25,
+        18
+      ],
+      "startAt": "2010-06-18T02:37:00+08:00",
+      "firstThreePillars": [
+        "己丑",
+        "庚寅",
+        "辛卯"
+      ],
+      "actualSkillSect1StartForComparison": "2010-06-23 08:37:00"
+    },
+    {
+      "id": "1990-03-08-12:00-男",
+      "date": "1990-03-08",
+      "time": "12:00",
+      "gender": "male",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "庚午",
+          "tenGod": "偏印",
+          "stemElement": "金",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丁",
+              "element": "火",
+              "tenGod": "正财"
+            },
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "正官"
+            }
+          ],
+          "naYin": "路旁土",
+          "dayMasterStage": "胎",
+          "selfStage": "沐浴",
+          "xunKong": "戌亥"
+        },
+        {
+          "id": "month",
+          "pillar": "己卯",
+          "tenGod": "正官",
+          "stemElement": "土",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "乙",
+              "element": "木",
+              "tenGod": "伤官"
+            }
+          ],
+          "naYin": "城头土",
+          "dayMasterStage": "死",
+          "selfStage": "病",
+          "xunKong": "申酉"
+        },
+        {
+          "id": "day",
+          "pillar": "壬申",
+          "tenGod": "日主",
+          "stemElement": "水",
+          "branchElement": "金",
+          "hiddenStems": [
+            {
+              "stem": "庚",
+              "element": "金",
+              "tenGod": "偏印"
+            },
+            {
+              "stem": "壬",
+              "element": "水",
+              "tenGod": "比肩"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "七杀"
+            }
+          ],
+          "naYin": "剑锋金",
+          "dayMasterStage": "长生",
+          "selfStage": "长生",
+          "xunKong": "戌亥"
+        },
+        {
+          "id": "hour",
+          "pillar": "丙午",
+          "tenGod": "偏财",
+          "stemElement": "火",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丁",
+              "element": "火",
+              "tenGod": "正财"
+            },
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "正官"
+            }
+          ],
+          "naYin": "天河水",
+          "dayMasterStage": "胎",
+          "selfStage": "帝旺",
+          "xunKong": "寅卯"
+        }
+      ],
+      "direction": "forward",
+      "offset": [
+        9,
+        3,
+        16,
+        0
+      ],
+      "startAt": "1999-06-24T12:00:00+08:00",
+      "firstThreePillars": [
+        "庚辰",
+        "辛巳",
+        "壬午"
+      ],
+      "actualSkillSect1StartForComparison": "1999-06-28 12:00:00"
+    },
+    {
+      "id": "1990-03-08-12:00-女",
+      "date": "1990-03-08",
+      "time": "12:00",
+      "gender": "female",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "庚午",
+          "tenGod": "偏印",
+          "stemElement": "金",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丁",
+              "element": "火",
+              "tenGod": "正财"
+            },
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "正官"
+            }
+          ],
+          "naYin": "路旁土",
+          "dayMasterStage": "胎",
+          "selfStage": "沐浴",
+          "xunKong": "戌亥"
+        },
+        {
+          "id": "month",
+          "pillar": "己卯",
+          "tenGod": "正官",
+          "stemElement": "土",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "乙",
+              "element": "木",
+              "tenGod": "伤官"
+            }
+          ],
+          "naYin": "城头土",
+          "dayMasterStage": "死",
+          "selfStage": "病",
+          "xunKong": "申酉"
+        },
+        {
+          "id": "day",
+          "pillar": "壬申",
+          "tenGod": "日主",
+          "stemElement": "水",
+          "branchElement": "金",
+          "hiddenStems": [
+            {
+              "stem": "庚",
+              "element": "金",
+              "tenGod": "偏印"
+            },
+            {
+              "stem": "壬",
+              "element": "水",
+              "tenGod": "比肩"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "七杀"
+            }
+          ],
+          "naYin": "剑锋金",
+          "dayMasterStage": "长生",
+          "selfStage": "长生",
+          "xunKong": "戌亥"
+        },
+        {
+          "id": "hour",
+          "pillar": "丙午",
+          "tenGod": "偏财",
+          "stemElement": "火",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丁",
+              "element": "火",
+              "tenGod": "正财"
+            },
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "正官"
+            }
+          ],
+          "naYin": "天河水",
+          "dayMasterStage": "胎",
+          "selfStage": "帝旺",
+          "xunKong": "寅卯"
+        }
+      ],
+      "direction": "backward",
+      "offset": [
+        0,
+        9,
+        8,
+        10
+      ],
+      "startAt": "1990-12-16T22:00:00+08:00",
+      "firstThreePillars": [
+        "戊寅",
+        "丁丑",
+        "丙子"
+      ],
+      "actualSkillSect1StartForComparison": "1990-12-18 12:00:00"
+    },
+    {
+      "id": "2026-02-04-04:01-男",
+      "date": "2026-02-04",
+      "time": "04:01",
+      "gender": "male",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "乙巳",
+          "tenGod": "七杀",
+          "stemElement": "木",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "庚",
+              "element": "金",
+              "tenGod": "伤官"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "劫财"
+            }
+          ],
+          "naYin": "覆灯火",
+          "dayMasterStage": "帝旺",
+          "selfStage": "沐浴",
+          "xunKong": "寅卯"
+        },
+        {
+          "id": "month",
+          "pillar": "己丑",
+          "tenGod": "比肩",
+          "stemElement": "土",
+          "branchElement": "土",
+          "hiddenStems": [
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "比肩"
+            },
+            {
+              "stem": "癸",
+              "element": "水",
+              "tenGod": "偏财"
+            },
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "霹雳火",
+          "dayMasterStage": "墓",
+          "selfStage": "墓",
+          "xunKong": "午未"
+        },
+        {
+          "id": "day",
+          "pillar": "己酉",
+          "tenGod": "日主",
+          "stemElement": "土",
+          "branchElement": "金",
+          "hiddenStems": [
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "大驿土",
+          "dayMasterStage": "长生",
+          "selfStage": "长生",
+          "xunKong": "寅卯"
+        },
+        {
+          "id": "hour",
+          "pillar": "丙寅",
+          "tenGod": "正印",
+          "stemElement": "火",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "甲",
+              "element": "木",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "劫财"
+            }
+          ],
+          "naYin": "炉中火",
+          "dayMasterStage": "死",
+          "selfStage": "长生",
+          "xunKong": "戌亥"
+        }
+      ],
+      "direction": "backward",
+      "offset": [
+        9,
+        9,
+        28,
+        4
+      ],
+      "startAt": "2035-12-02T08:01:00+08:00",
+      "firstThreePillars": [
+        "戊子",
+        "丁亥",
+        "丙戌"
+      ],
+      "actualSkillSect1StartForComparison": "2035-12-04 04:01:00"
+    },
+    {
+      "id": "2026-02-04-04:03-男",
+      "date": "2026-02-04",
+      "time": "04:03",
+      "gender": "male",
+      "dayBoundary": "ziHour23",
+      "timeZone": "Asia/Shanghai",
+      "details": [
+        {
+          "id": "year",
+          "pillar": "丙午",
+          "tenGod": "正印",
+          "stemElement": "火",
+          "branchElement": "火",
+          "hiddenStems": [
+            {
+              "stem": "丁",
+              "element": "火",
+              "tenGod": "偏印"
+            },
+            {
+              "stem": "己",
+              "element": "土",
+              "tenGod": "比肩"
+            }
+          ],
+          "naYin": "天河水",
+          "dayMasterStage": "临官",
+          "selfStage": "帝旺",
+          "xunKong": "寅卯"
+        },
+        {
+          "id": "month",
+          "pillar": "庚寅",
+          "tenGod": "伤官",
+          "stemElement": "金",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "甲",
+              "element": "木",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "劫财"
+            }
+          ],
+          "naYin": "松柏木",
+          "dayMasterStage": "死",
+          "selfStage": "绝",
+          "xunKong": "午未"
+        },
+        {
+          "id": "day",
+          "pillar": "己酉",
+          "tenGod": "日主",
+          "stemElement": "土",
+          "branchElement": "金",
+          "hiddenStems": [
+            {
+              "stem": "辛",
+              "element": "金",
+              "tenGod": "食神"
+            }
+          ],
+          "naYin": "大驿土",
+          "dayMasterStage": "长生",
+          "selfStage": "长生",
+          "xunKong": "寅卯"
+        },
+        {
+          "id": "hour",
+          "pillar": "丙寅",
+          "tenGod": "正印",
+          "stemElement": "火",
+          "branchElement": "木",
+          "hiddenStems": [
+            {
+              "stem": "甲",
+              "element": "木",
+              "tenGod": "正官"
+            },
+            {
+              "stem": "丙",
+              "element": "火",
+              "tenGod": "正印"
+            },
+            {
+              "stem": "戊",
+              "element": "土",
+              "tenGod": "劫财"
+            }
+          ],
+          "naYin": "炉中火",
+          "dayMasterStage": "死",
+          "selfStage": "长生",
+          "xunKong": "戌亥"
+        }
+      ],
+      "direction": "forward",
+      "offset": [
+        9,
+        10,
+        29,
+        16
+      ],
+      "startAt": "2036-01-02T20:03:00+08:00",
+      "firstThreePillars": [
+        "辛卯",
+        "壬辰",
+        "癸巳"
+      ],
+      "actualSkillSect1StartForComparison": "2036-01-04 04:03:00"
+    }
+  ]
+}

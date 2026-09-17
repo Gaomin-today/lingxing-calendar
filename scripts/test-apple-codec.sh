@@ -12,6 +12,7 @@ BUILD_ARGS=(--disable-sandbox --cache-path "$PWD/build/cache" --scratch-path "$C
 swift build "${BUILD_ARGS[@]}" --target LingxiCore
 CORE_BIN="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)"
 CORE_OBJECTS=("$CORE_BIN"/LingxiCore.build/*.swift.o)
+LUNAR_OBJECTS=("$CORE_BIN"/LunarSwift.build/*.swift.o)
 
 swiftc -swift-version 5 -parse-as-library \
     -module-name ReminderDateCodecChecks \
@@ -20,6 +21,7 @@ swiftc -swift-version 5 -parse-as-library \
     Sources/LingxiApp/SystemCalendarService.swift \
     Tests/SystemIntegrationChecks/ReminderDateCodecChecks.swift \
     "${CORE_OBJECTS[@]}" \
+    "${LUNAR_OBJECTS[@]}" \
     -o "$CHECKS_DIR/ReminderDateCodecChecks"
 
 "$CHECKS_DIR/ReminderDateCodecChecks"

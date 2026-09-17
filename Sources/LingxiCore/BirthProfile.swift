@@ -51,6 +51,9 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
     public var timeZoneIdentifier: String
     public var birthplace: String
     public var dayBoundary: BirthDayBoundary
+    /// Optional so existing local archives remain readable without migration.
+    public var luckGender: LuckGender?
+    public var strengthAssumption: BaziStrengthAssumption?
 
     public static let supportedYears = 1901...2099
     public static let repeatedTimePolicyDescription = "当地时钟回拨造成重复时刻时，采用该时刻第一次出现所对应的时间；请核对出生记录。"
@@ -60,7 +63,8 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
         birthMonth: Int = 1, birthDay: Int = 1, birthHour: Int = 12,
         birthMinute: Int = 0, birthTimeKnown: Bool = false,
         timeZoneIdentifier: String = "Asia/Shanghai", birthplace: String = "",
-        dayBoundary: BirthDayBoundary = .midnight
+        dayBoundary: BirthDayBoundary = .midnight,
+        luckGender: LuckGender? = nil, strengthAssumption: BaziStrengthAssumption? = nil
     ) {
         self.id = id
         self.name = name
@@ -73,6 +77,8 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
         self.timeZoneIdentifier = timeZoneIdentifier
         self.birthplace = birthplace
         self.dayBoundary = dayBoundary
+        self.luckGender = luckGender
+        self.strengthAssumption = strengthAssumption
     }
 
     public func validate() throws { _ = try resolution() }

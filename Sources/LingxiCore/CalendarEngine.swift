@@ -17,8 +17,8 @@ public struct DayInfo: Equatable, Sendable {
 public struct CalendarEngine: Sendable {
     /// The entire first release uses Beijing civil time, regardless of the Mac's time zone.
     public static let timeZone = TimeZone(identifier: "Asia/Shanghai")!
-    public static let solarTermSupportedYears = 2025...2027
-    public static let solarTermCoverageNote = "节气日期已核对 2025–2027 年香港天文台年表；其他年份暂未收录。"
+    public static let solarTermSupportedYears = 1901...2099
+    public static let solarTermCoverageNote = "节气覆盖 1901–2099 年，采用本地太阳黄经算法；2025–2027 年的 72 个节气日期已核对香港天文台年表。时刻为算法计算值。"
     public let gregorian: Calendar
     private let chinese: Calendar
 
@@ -77,16 +77,33 @@ public struct CalendarEngine: Sendable {
         Self.solarTermSupportedYears.contains(gregorian.component(.year, from: date))
     }
 
-    /// Returns only the term's Beijing civil date, not its precise astronomical instant.
-    /// `nil` means no term on this day, or an uncovered year; use hasSolarTermData to distinguish.
+    /// Returns the term label for its whole Beijing civil date. A date label does
+    /// not mean the astronomical boundary has already occurred at that instant.
     public func solarTerm(on date: Date) -> String? {
+        guard hasSolarTermData(for: date) else { return nil }
         let parts = gregorian.dateComponents([.year, .month, .day], from: date)
-        guard let year = parts.year, let month = parts.month, let day = parts.day,
-              let dates = Self.solarTermDays[year] else { return nil }
-        let firstIndex = (month - 1) * 2
-        if dates[firstIndex] == day { return Self.solarTermNames[firstIndex] }
-        if dates[firstIndex + 1] == day { return Self.solarTermNames[firstIndex + 1] }
-        return nil
+        guard let year = parts.year, let month = parts.month, let day = parts.day else { return nil }
+        return SolarTermDayCache.shared.labels(in: year, calendar: gregorian)[month * 100 + day]
+    }
+
+    /// All 24 astronomical boundaries, chronologically ordered, in an explicitly
+    /// supported Gregorian year. Shares the natal-chart engine's astronomy cache.
+    public func solarTerms(in year: Int) throws -> [SolarTermBoundary] {
+        guard Self.solarTermSupportedYears.contains(year) else { throw FourPillarsError.unsupportedYear }
+        return try NativeSolarTermProvider.shared.terms(in: year)
+    }
+
+    /// `previous` includes an exact hit; `next` is strictly after the instant.
+    /// `onDay` is independent of whether today's boundary has already occurred.
+    public func solarTermContext(at date: Date) throws -> SolarTermContext {
+        guard date.timeIntervalSinceReferenceDate.isFinite else { throw FourPillarsError.invalidInstant }
+        let year = gregorian.component(.year, from: date)
+        guard Self.solarTermSupportedYears.contains(year) else { throw FourPillarsError.unsupportedYear }
+        let terms = try ((year - 1)...(year + 1)).flatMap { try NativeSolarTermProvider.shared.terms(in: $0) }
+        guard let previous = terms.last(where: { $0.date <= date }),
+              let next = terms.first(where: { $0.date > date }) else { throw FourPillarsError.incompleteSolarTerms }
+        return SolarTermContext(previous: previous, next: next,
+                                onDay: terms.first(where: { gregorian.isDate($0.date, inSameDayAs: date) }))
     }
 
     /// Civil-day naming: midnight is the boundary. This is not a Bazi birth-chart calculation.
@@ -115,17 +132,32 @@ public struct CalendarEngine: Sendable {
         "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
         "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
     ]
-    private static let solarTermNames = [
-        "小寒", "大寒", "立春", "雨水", "惊蛰", "春分", "清明", "谷雨",
-        "立夏", "小满", "芒种", "夏至", "小暑", "大暑", "立秋", "处暑",
-        "白露", "秋分", "寒露", "霜降", "立冬", "小雪", "大雪", "冬至"
-    ]
-    // Two day-of-month values for each Gregorian month. Transcribed and checked against
-    // HKO Gregorian–Lunar Calendar Conversion Tables, 2025/2026/2027 (see docs/calendar-sources.md).
-    // No approximation or model-generated fallback is used outside this table.
-    private static let solarTermDays: [Int: [Int]] = [
-        2025: [5,20, 3,18, 5,20, 4,20, 5,21, 5,21, 7,22, 7,23, 7,23, 8,23, 7,22, 7,21],
-        2026: [5,20, 4,18, 5,20, 5,20, 5,21, 5,21, 7,23, 7,23, 7,23, 8,23, 7,22, 7,22],
-        2027: [5,20, 4,19, 6,21, 5,20, 6,21, 6,21, 7,23, 8,23, 8,23, 8,23, 7,22, 7,22]
-    ]
+}
+
+public struct SolarTermContext: Equatable, Sendable {
+    public let previous: SolarTermBoundary
+    public let next: SolarTermBoundary
+    public let onDay: SolarTermBoundary?
+}
+
+/// Month grids read dozens of days per render. Store the small civil-date index
+/// once per year rather than comparing all 24 absolute instants for every cell.
+private final class SolarTermDayCache: @unchecked Sendable {
+    static let shared = SolarTermDayCache()
+    private let lock = NSLock()
+    private var years: [Int: [Int: String]] = [:]
+
+    func labels(in year: Int, calendar: Calendar) -> [Int: String] {
+        lock.lock()
+        defer { lock.unlock() }
+        if let found = years[year] { return found }
+        guard let terms = try? NativeSolarTermProvider.shared.terms(in: year) else { return [:] }
+        var labels: [Int: String] = [:]
+        for term in terms {
+            let parts = calendar.dateComponents([.month, .day], from: term.date)
+            if let month = parts.month, let day = parts.day { labels[month * 100 + day] = term.name }
+        }
+        years[year] = labels
+        return labels
+    }
 }

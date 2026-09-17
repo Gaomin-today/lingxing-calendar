@@ -26,8 +26,8 @@ struct TimelineCalendarView: View {
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(title).font(.system(size: 23, weight: .medium, design: .serif))
-                    Text("北京时间 UTC+8 · 日程占用时间，待办记录截止日").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                    DateJumpButton(store: store, title: title)
+                    Text("北京时间 · 日程占用时间，待办记录截止日").font(.system(size: 10)).foregroundStyle(Theme.secondary).help("Asia/Shanghai · 历史按当地钟表时间")
                 }
                 Spacer()
                 Button { store.movePeriod(-1) } label: { Image(systemName: "chevron.left") }.accessibilityLabel(store.calendarMode == .week ? "上一周" : "前一天")
@@ -73,7 +73,7 @@ struct TimelineCalendarView: View {
         let info = store.calendar.info(for: date)
         let allDay = store.occurrences(on: date).filter { $0.event.isAllDay && !$0.event.isTask }
         return VStack(spacing: 7) {
-            Button { store.selectedDate = date } label: {
+            Button { store.select(date) } label: {
                 VStack(spacing: 4) {
                     HStack(spacing: 5) {
                         Text(DateText.format(date, "E")).font(.system(size: 10))
@@ -88,7 +88,7 @@ struct TimelineCalendarView: View {
                 ForEach(allDay.prefix(2)) { item in
                     Button { store.editorEvent = item.event } label: { Text(item.event.title).font(.system(size: 9)).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading).padding(4).background(Theme.softJade, in: RoundedRectangle(cornerRadius: 4)) }.buttonStyle(.plain)
                 }
-                if allDay.count > 2 { Button("另 \(allDay.count - 2) 项") { store.selectedDate = date }.buttonStyle(.plain).font(.system(size: 8)) }
+                if allDay.count > 2 { Button("另 \(allDay.count - 2) 项") { store.select(date) }.buttonStyle(.plain).font(.system(size: 8)) }
             }.frame(height: 43, alignment: .top)
         }.padding(.horizontal, 4).frame(maxWidth: .infinity)
     }

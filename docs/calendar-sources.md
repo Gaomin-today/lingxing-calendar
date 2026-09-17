@@ -2,6 +2,14 @@
 
 核对日期：2026-09-17。以下计算和条目都在本地完成，不依赖语言模型返回日期。
 
+## v0.4 当前范围
+
+从 v0.4 起，月历节气已改用与四柱共用的本地太阳交节算法，公开范围为 **1901–2099 年**。此前的 2025–2027 静态表方案已被替代；下文保留的 72 个日期作为香港天文台回归基准，不再是应用的年份覆盖限制。交节时刻是算法计算值，日期标签只表示该民用日包含节气。
+
+本版新增日／时黄历与九星等传统字段，采用固定 `lunar-swift 1.1.8` 的本地规则；节日和神诞扩展到 **24 条**。普通农历月、地域和逐条来源策略保持不变，不推断法定放假或调休。具体新增条目、交节日期与交节瞬间的区别、早晚子时及许可见 [v0.4 万年历来源](almanac-v0.4.md)。
+
+出生四柱继续按立春及十二节的交接瞬间换年换月，支持零点或 23 点换日；档案使用所选 IANA 时区，不做真太阳时。命盘详情、大运、个人每日解读的口径见 [v0.4 八字说明](bazi-v0.4.md)。民用月历年干支按春节换年的定义不变。下文“首版”与“不实现”等措辞均记录 v0.1 的原始边界，不能覆盖上述新版模块说明。
+
 ## 计算边界
 
 - 公历：Foundation `Calendar(identifier: .gregorian)`。
@@ -12,7 +20,7 @@
 - 月视图固定 42 格，周一开始，按历法逐日递增，避免用固定秒数跨越历史夏令时。
 - 这是一版现代民用日历。已设置 2025–2027 关键日期回归用例；不能将这组抽样验证解释为已经逐日验证所有历史年份。香港天文台也说明远期、接近午夜的新月或节气可能因天文计算精度出现日期差异。[对照表说明](https://www.hko.gov.hk/sc/gts/time/conversion.htm)
 
-## 节气日期表
+## 旧版静态节气日期表（现为回归基准）
 
 已逐项核对 **2025–2027 年、共 72 个节气民用日期**。来源是香港天文台发布的公历与农历对照表。香港和北京在这些年份都使用 UTC+08:00，故民用日期一致。首版仅显示日期，不显示交节精确时刻，也不据此推导命理月柱。
 
@@ -31,11 +39,11 @@
 | 11 月：立冬／小雪 | 7／22 | 7／22 | 7／22 |
 | 12 月：大雪／冬至 | 7／21 | 7／22 | 7／22 |
 
-原表：[2025 文本](https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2025c.txt)／[PDF](https://www.hko.gov.hk/tc/gts/time/calendar/pdf/files/2025.pdf)、[2026 文本](https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2026c.txt)／[PDF](https://www.hko.gov.hk/tc/gts/time/calendar/pdf/files/2026.pdf)、[2027 文本](https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2027c.txt)／[PDF](https://www.hko.gov.hk/tc/gts/time/calendar/pdf/files/2027.pdf)。代码表位于 `Sources/LingxiCore/CalendarEngine.swift`。
+原表：[2025 文本](https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2025c.txt)／[PDF](https://www.hko.gov.hk/tc/gts/time/calendar/pdf/files/2025.pdf)、[2026 文本](https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2026c.txt)／[PDF](https://www.hko.gov.hk/tc/gts/time/calendar/pdf/files/2026.pdf)、[2027 文本](https://www.hko.gov.hk/tc/gts/time/calendar/text/files/T2027c.txt)／[PDF](https://www.hko.gov.hk/tc/gts/time/calendar/pdf/files/2027.pdf)。v0.4 的回归断言位于 `Tests/LingxiCoreTests/CalendarTests.swift`，运行时不再依赖旧静态日期表。
 
 `solarTerm(on:)` 在无节气和超出覆盖年份时均返回 `nil`；UI 用 `hasSolarTermData(for:)` 区分两者并提示覆盖范围。超出范围不会使用近似公式或 AI 补全。清明在首版作为节气显示，其日期随年度表变化，并非固定公历 4 月 5 日。
 
-扩展年度时必须先核对天文台新年表、补全 24 条日期和边界回归用例，再更新覆盖说明。
+旧版通过逐年补静态表扩展范围；v0.4 已由算法提供整个支持范围。新的官方年表仍可加入独立回归核查，不能将算法能输出日期等同于全部年份已获独立验证。
 
 ## 节日与神诞目录
 
@@ -59,4 +67,4 @@
 
 ## 不属于本历法核心的内容
 
-民用 CalendarEngine 不生成黄历宜忌、吉凶评分或八字月柱、时柱。v0.3 新增独立 FourPillarsEngine 负责八字四柱与交节时刻，详见[四柱与出生档案说明](bazi-v0.3.md)。它不会覆盖本页描述的民用历法口径。后续引入宜忌必须提供可以核对的具体历书版本、流派与授权，不能把 AI 生成的建议冒充历书事实。
+民用 `CalendarEngine` 不生成黄历宜忌、吉凶评分或八字月柱、时柱。`FourPillarsEngine` 负责八字四柱与交节瞬间，v0.4 新增 `AlmanacEngine` 提供固定版本的日时黄历；详见[四柱与个人解读](bazi-v0.4.md)及[黄历规则来源](almanac-v0.4.md)。这些模块不覆盖民用历法定义，也不把 AI 生成的建议作为历书事实。

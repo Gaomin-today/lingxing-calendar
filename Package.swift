@@ -8,8 +8,9 @@ let package = Package(
         .library(name: "LingxiCore", targets: ["LingxiCore"]),
         .executable(name: "LingxingCalendar", targets: ["LingxiApp"])
     ],
+    dependencies: [.package(path: "Vendor/LunarSwiftRuntime")],
     targets: [
-        .target(name: "LingxiCore"),
+        .target(name: "LingxiCore", dependencies: [.product(name: "LunarSwift", package: "LunarSwiftRuntime")]),
         .executableTarget(name: "LingxiApp", dependencies: ["LingxiCore"]),
         .testTarget(name: "LingxiCoreTests", dependencies: ["LingxiCore"])
     ]

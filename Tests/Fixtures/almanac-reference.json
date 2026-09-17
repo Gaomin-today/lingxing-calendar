@@ -1,0 +1,4222 @@
+{
+  "source": "wannianli.engine.build_calendar_day",
+  "sourceSHA256": "a67f58da9ff6c303b5bc5fde464a0560cfce0841af50d80de9fbb20a8fe3051c",
+  "dependency": "lunar_python==1.4.8",
+  "timezone": "Asia/Shanghai (civil UTC+08 reference fields; no IANA conversion in Python engine)",
+  "cases": [
+    {
+      "date": "1901-01-01",
+      "day": {
+        "yi": [
+          "祭祀",
+          "平治道涂",
+          "修坟",
+          "除服",
+          "成服",
+          "馀事勿取"
+        ],
+        "ji": [
+          "移徙",
+          "入宅",
+          "嫁娶",
+          "掘井",
+          "安葬"
+        ],
+        "ji_shen": [
+          "天恩",
+          "民日",
+          "不将",
+          "五合",
+          "玉堂"
+        ],
+        "xiong_sha": [
+          "天罡",
+          "死神",
+          "月刑",
+          "天吏",
+          "致死",
+          "天贼"
+        ],
+        "tian_shen": "玉堂",
+        "tian_shen_type": "黄道",
+        "chong": "酉",
+        "chong_desc": "(癸酉)鸡",
+        "sha": "西",
+        "luck": "吉"
+      },
+      "positions": {
+        "xi": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "yang_gui": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "yin_gui": {
+          "raw": "坤",
+          "desc": "西南"
+        },
+        "fu": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "cai": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "tai": {
+          "desc": "占大门 外正西"
+        }
+      },
+      "hours": [
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "酬神",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "安葬",
+            "作灶"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(戊午)马",
+          "sha": "南",
+          "hour": 0,
+          "ganZhi": "甲子",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "求嗣",
+            "斋醮",
+            "订婚",
+            "嫁娶",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造"
+          ],
+          "tian_shen": "勾陈",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "未",
+          "chong_desc": "(己未)羊",
+          "sha": "东",
+          "hour": 1,
+          "ganZhi": "乙丑",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "上梁",
+            "盖屋",
+            "入殓",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "申",
+          "chong_desc": "(庚申)猴",
+          "sha": "北",
+          "hour": 3,
+          "ganZhi": "丙寅",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "修造",
+            "入宅",
+            "安葬"
+          ],
+          "ji": [
+            "造船",
+            "乘船"
+          ],
+          "tian_shen": "明堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "酉",
+          "chong_desc": "(辛酉)鸡",
+          "sha": "西",
+          "hour": 5,
+          "ganZhi": "丁卯",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "斋醮",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "词讼",
+            "祈福",
+            "求嗣",
+            "乘船"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "戌",
+          "chong_desc": "(壬戌)狗",
+          "sha": "南",
+          "hour": 7,
+          "ganZhi": "戊辰",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "赴任",
+            "出行",
+            "见贵",
+            "求财",
+            "嫁娶",
+            "入宅",
+            "移徙",
+            "求嗣"
+          ],
+          "ji": [
+            "开光",
+            "修造",
+            "安葬"
+          ],
+          "tian_shen": "朱雀",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "亥",
+          "chong_desc": "(癸亥)猪",
+          "sha": "东",
+          "hour": 9,
+          "ganZhi": "己巳",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "订婚",
+            "嫁娶",
+            "开市",
+            "安葬",
+            "赴任",
+            "出行",
+            "求财",
+            "见贵"
+          ],
+          "ji": [
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "金匮",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "子",
+          "chong_desc": "(甲子)鼠",
+          "sha": "北",
+          "hour": 11,
+          "ganZhi": "庚午",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "祭祀"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "天德",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "丑",
+          "chong_desc": "(乙丑)牛",
+          "sha": "西",
+          "hour": 13,
+          "ganZhi": "辛未",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "嫁娶",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "求财",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光"
+          ],
+          "tian_shen": "白虎",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "寅",
+          "chong_desc": "(丙寅)虎",
+          "sha": "南",
+          "hour": 15,
+          "ganZhi": "壬申",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "诸事不宜"
+          ],
+          "tian_shen": "玉堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "卯",
+          "chong_desc": "(丁卯)兔",
+          "sha": "东",
+          "hour": 17,
+          "ganZhi": "癸酉",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "合脊",
+            "嫁娶",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "修造",
+            "移徙",
+            "出行",
+            "词讼"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "辰",
+          "chong_desc": "(戊辰)龙",
+          "sha": "北",
+          "hour": 19,
+          "ganZhi": "甲戌",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "见贵"
+          ],
+          "ji": [
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "玄武",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "巳",
+          "chong_desc": "(己巳)蛇",
+          "sha": "西",
+          "hour": 21,
+          "ganZhi": "乙亥",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "赴任",
+            "修造",
+            "移徙",
+            "出行",
+            "词讼",
+            "上梁",
+            "盖屋",
+            "入殓"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "午",
+          "chong_desc": "(庚午)马",
+          "sha": "南",
+          "hour": 23,
+          "ganZhi": "丙子",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        }
+      ],
+      "stars": {
+        "year": "一",
+        "month": "七",
+        "day": "七"
+      }
+    },
+    {
+      "date": "1988-02-15",
+      "day": {
+        "yi": [
+          "祭祀",
+          "沐浴",
+          "祈福",
+          "求嗣",
+          "斋醮",
+          "订盟",
+          "纳采",
+          "裁衣",
+          "冠笄",
+          "开市",
+          "立券",
+          "交易",
+          "纳财",
+          "除服",
+          "谢土",
+          "出行",
+          "移柩"
+        ],
+        "ji": [
+          "入殓",
+          "安葬",
+          "作灶",
+          "入宅"
+        ],
+        "ji_shen": [
+          "母仓",
+          "时阳",
+          "生气",
+          "不将",
+          "益后",
+          "青龙",
+          "鸣吠对"
+        ],
+        "xiong_sha": [
+          "灾煞",
+          "天火",
+          "地囊"
+        ],
+        "tian_shen": "青龙",
+        "tian_shen_type": "黄道",
+        "chong": "午",
+        "chong_desc": "(甲午)马",
+        "sha": "南",
+        "luck": "吉"
+      },
+      "positions": {
+        "xi": {
+          "raw": "乾",
+          "desc": "西北"
+        },
+        "yang_gui": {
+          "raw": "离",
+          "desc": "正南"
+        },
+        "yin_gui": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "fu": {
+          "raw": "坤",
+          "desc": "西南"
+        },
+        "cai": {
+          "raw": "震",
+          "desc": "正东"
+        },
+        "tai": {
+          "desc": "占碓磨 房内南"
+        }
+      },
+      "hours": [
+        {
+          "yi": [
+            "见贵",
+            "求财",
+            "嫁娶",
+            "进人口",
+            "安葬",
+            "求嗣",
+            "订婚"
+          ],
+          "ji": [
+            "赴任",
+            "修造",
+            "移徙",
+            "出行",
+            "词讼",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光"
+          ],
+          "tian_shen": "金匮",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(庚午)马",
+          "sha": "南",
+          "hour": 0,
+          "ganZhi": "丙子",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "酬神",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光"
+          ],
+          "tian_shen": "天德",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "未",
+          "chong_desc": "(辛未)羊",
+          "sha": "东",
+          "hour": 1,
+          "ganZhi": "丁丑",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "白虎",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "申",
+          "chong_desc": "(壬申)猴",
+          "sha": "北",
+          "hour": 3,
+          "ganZhi": "戊寅",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "入宅",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造"
+          ],
+          "tian_shen": "玉堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "酉",
+          "chong_desc": "(癸酉)鸡",
+          "sha": "西",
+          "hour": 5,
+          "ganZhi": "己卯",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "诸事不宜"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "戌",
+          "chong_desc": "(甲戌)狗",
+          "sha": "南",
+          "hour": 7,
+          "ganZhi": "庚辰",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "入宅",
+            "开市"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "求财",
+            "开光",
+            "修造",
+            "安葬"
+          ],
+          "tian_shen": "玄武",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "亥",
+          "chong_desc": "(乙亥)猪",
+          "sha": "东",
+          "hour": 9,
+          "ganZhi": "辛巳",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "赴任"
+          ],
+          "ji": [
+            "祈福",
+            "求嗣"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "子",
+          "chong_desc": "(丙子)鼠",
+          "sha": "北",
+          "hour": 11,
+          "ganZhi": "壬午",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "出行",
+            "入宅",
+            "嫁娶",
+            "修造",
+            "安葬",
+            "赴任",
+            "见贵",
+            "求财"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "勾陈",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "丑",
+          "chong_desc": "(丁丑)牛",
+          "sha": "西",
+          "hour": 13,
+          "ganZhi": "癸未",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "酬神",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "入宅",
+            "安葬",
+            "赴任",
+            "见贵"
+          ],
+          "ji": [
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "寅",
+          "chong_desc": "(戊寅)虎",
+          "sha": "南",
+          "hour": 15,
+          "ganZhi": "甲申",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "出行",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "移徙",
+            "开市",
+            "安葬"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "明堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "卯",
+          "chong_desc": "(己卯)兔",
+          "sha": "东",
+          "hour": 17,
+          "ganZhi": "乙酉",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "安葬"
+          ],
+          "ji": [
+            "造船",
+            "乘船",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "辰",
+          "chong_desc": "(庚辰)龙",
+          "sha": "北",
+          "hour": 19,
+          "ganZhi": "丙戌",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "修造",
+            "盖屋",
+            "移徙",
+            "安床",
+            "入宅",
+            "开市",
+            "开仓",
+            "见贵",
+            "求财",
+            "订婚",
+            "嫁娶",
+            "进人口"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "朱雀",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "巳",
+          "chong_desc": "(辛巳)蛇",
+          "sha": "西",
+          "hour": 21,
+          "ganZhi": "丁亥",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "酬神",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "安葬",
+            "赴任"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "午",
+          "chong_desc": "(壬午)马",
+          "sha": "南",
+          "hour": 23,
+          "ganZhi": "戊子",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        }
+      ],
+      "stars": {
+        "year": "三",
+        "month": "五",
+        "day": "一"
+      }
+    },
+    {
+      "date": "2025-08-12",
+      "day": {
+        "yi": [
+          "祭祀",
+          "塞穴",
+          "入殓",
+          "破土",
+          "安葬",
+          "移柩",
+          "馀事勿取"
+        ],
+        "ji": [
+          "诸事不宜"
+        ],
+        "ji_shen": [
+          "天德",
+          "天恩",
+          "母仓",
+          "四相",
+          "明堂"
+        ],
+        "xiong_sha": [
+          "小耗",
+          "归忌",
+          "八专",
+          "触水龙"
+        ],
+        "tian_shen": "明堂",
+        "tian_shen_type": "黄道",
+        "chong": "未",
+        "chong_desc": "(丁未)羊",
+        "sha": "东",
+        "luck": "吉"
+      },
+      "positions": {
+        "xi": {
+          "raw": "巽",
+          "desc": "东南"
+        },
+        "yang_gui": {
+          "raw": "巽",
+          "desc": "东南"
+        },
+        "yin_gui": {
+          "raw": "震",
+          "desc": "正东"
+        },
+        "fu": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "cai": {
+          "raw": "离",
+          "desc": "正南"
+        },
+        "tai": {
+          "desc": "房床厕 外东北"
+        }
+      },
+      "hours": [
+        {
+          "yi": [
+            "赴任",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "入宅",
+            "开市",
+            "安葬",
+            "求嗣"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "午",
+          "chong_desc": "(丙午)马",
+          "sha": "南",
+          "hour": 0,
+          "ganZhi": "壬子",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "朱雀",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "未",
+          "chong_desc": "(丁未)羊",
+          "sha": "东",
+          "hour": 1,
+          "ganZhi": "癸丑",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "订婚",
+            "嫁娶",
+            "开市",
+            "安葬"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "金匮",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "申",
+          "chong_desc": "(戊申)猴",
+          "sha": "北",
+          "hour": 3,
+          "ganZhi": "甲寅",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "酬神",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "入宅",
+            "安葬",
+            "求嗣"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "天德",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "酉",
+          "chong_desc": "(己酉)鸡",
+          "sha": "西",
+          "hour": 5,
+          "ganZhi": "乙卯",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "上梁",
+            "盖屋",
+            "入殓"
+          ],
+          "tian_shen": "白虎",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "戌",
+          "chong_desc": "(庚戌)狗",
+          "sha": "南",
+          "hour": 7,
+          "ganZhi": "丙辰",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "祭祀",
+            "盖屋",
+            "移徙"
+          ],
+          "ji": [
+            "开光",
+            "修造",
+            "安葬"
+          ],
+          "tian_shen": "玉堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "亥",
+          "chong_desc": "(辛亥)猪",
+          "sha": "东",
+          "hour": 9,
+          "ganZhi": "丁巳",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求财",
+            "嫁娶",
+            "开市",
+            "安葬",
+            "订婚"
+          ],
+          "ji": [
+            "赴任",
+            "修造",
+            "移徙",
+            "出行",
+            "词讼",
+            "祈福",
+            "求嗣"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "子",
+          "chong_desc": "(壬子)鼠",
+          "sha": "北",
+          "hour": 11,
+          "ganZhi": "戊午",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "诸事不宜"
+          ],
+          "tian_shen": "玄武",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "丑",
+          "chong_desc": "(癸丑)牛",
+          "sha": "西",
+          "hour": 13,
+          "ganZhi": "己未",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "作灶",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神",
+            "赴任",
+            "出行",
+            "求财",
+            "见贵",
+            "嫁娶",
+            "进人口",
+            "移徙",
+            "安葬"
+          ],
+          "ji": [
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "寅",
+          "chong_desc": "(甲寅)虎",
+          "sha": "南",
+          "hour": 15,
+          "ganZhi": "庚申",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "订婚",
+            "嫁娶",
+            "入宅",
+            "盖屋",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造"
+          ],
+          "tian_shen": "勾陈",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "卯",
+          "chong_desc": "(乙卯)兔",
+          "sha": "东",
+          "hour": 17,
+          "ganZhi": "辛酉",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "订婚",
+            "嫁娶",
+            "安床",
+            "移徙",
+            "入宅",
+            "修造",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "辰",
+          "chong_desc": "(丙辰)龙",
+          "sha": "北",
+          "hour": 19,
+          "ganZhi": "壬戌",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "修造",
+            "盖屋",
+            "移徙",
+            "作灶",
+            "安床",
+            "入宅",
+            "开市",
+            "见贵",
+            "求财",
+            "嫁娶"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "明堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "巳",
+          "chong_desc": "(丁巳)蛇",
+          "sha": "西",
+          "hour": 21,
+          "ganZhi": "癸亥",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "订婚",
+            "嫁娶",
+            "安床",
+            "移徙",
+            "入宅",
+            "修造",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "求财"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(戊午)马",
+          "sha": "南",
+          "hour": 23,
+          "ganZhi": "甲子",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        }
+      ],
+      "stars": {
+        "year": "二",
+        "month": "五",
+        "day": "五"
+      }
+    },
+    {
+      "date": "2026-02-04",
+      "day": {
+        "yi": [
+          "祭祀",
+          "祈福",
+          "求嗣",
+          "开光",
+          "出火",
+          "出行",
+          "拆卸",
+          "修造",
+          "动土",
+          "入宅",
+          "移徙",
+          "上梁",
+          "挂匾",
+          "开池",
+          "入殓",
+          "安葬",
+          "破土",
+          "启钻"
+        ],
+        "ji": [
+          "嫁娶",
+          "作灶",
+          "安床"
+        ],
+        "ji_shen": [
+          "天恩",
+          "阴德",
+          "福生",
+          "除神",
+          "鸣吠"
+        ],
+        "xiong_sha": [
+          "天吏",
+          "致死",
+          "五虚",
+          "五离",
+          "元武"
+        ],
+        "tian_shen": "玄武",
+        "tian_shen_type": "黑道",
+        "chong": "卯",
+        "chong_desc": "(癸卯)兔",
+        "sha": "东",
+        "luck": "凶"
+      },
+      "positions": {
+        "xi": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "yang_gui": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "yin_gui": {
+          "raw": "坤",
+          "desc": "西南"
+        },
+        "fu": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "cai": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "tai": {
+          "desc": "占大门 外东北"
+        }
+      },
+      "hours": [
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "赴任",
+            "词讼",
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(戊午)马",
+          "sha": "南",
+          "hour": 0,
+          "ganZhi": "甲子",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "诸事不宜"
+          ],
+          "tian_shen": "勾陈",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "未",
+          "chong_desc": "(己未)羊",
+          "sha": "东",
+          "hour": 1,
+          "ganZhi": "乙丑",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "申",
+          "chong_desc": "(庚申)猴",
+          "sha": "北",
+          "hour": 3,
+          "ganZhi": "丙寅",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "明堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "酉",
+          "chong_desc": "(辛酉)鸡",
+          "sha": "西",
+          "hour": 5,
+          "ganZhi": "丁卯",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "入宅",
+            "开市",
+            "交易",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "戌",
+          "chong_desc": "(壬戌)狗",
+          "sha": "南",
+          "hour": 7,
+          "ganZhi": "戊辰",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "修造",
+            "盖屋",
+            "移徙",
+            "安床",
+            "入宅",
+            "开市",
+            "开仓",
+            "求嗣",
+            "嫁娶",
+            "赴任",
+            "出行",
+            "见贵",
+            "求财"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "朱雀",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "亥",
+          "chong_desc": "(癸亥)猪",
+          "sha": "东",
+          "hour": 9,
+          "ganZhi": "己巳",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "赴任"
+          ],
+          "ji": [
+            "上梁",
+            "盖屋",
+            "入殓",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "金匮",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "子",
+          "chong_desc": "(甲子)鼠",
+          "sha": "北",
+          "hour": 11,
+          "ganZhi": "庚午",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "见贵",
+            "求财",
+            "嫁娶",
+            "进人口",
+            "移徙",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "天德",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "丑",
+          "chong_desc": "(乙丑)牛",
+          "sha": "西",
+          "hour": 13,
+          "ganZhi": "辛未",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "赴任",
+            "见贵",
+            "出行",
+            "求财",
+            "嫁娶",
+            "进人口",
+            "移徙",
+            "安葬",
+            "订婚",
+            "作灶",
+            "祭祀"
+          ],
+          "ji": [
+            "祈福",
+            "求嗣"
+          ],
+          "tian_shen": "白虎",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "寅",
+          "chong_desc": "(丙寅)虎",
+          "sha": "南",
+          "hour": 15,
+          "ganZhi": "壬申",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "酬神",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "安葬",
+            "求嗣"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "玉堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "卯",
+          "chong_desc": "(丁卯)兔",
+          "sha": "东",
+          "hour": 17,
+          "ganZhi": "癸酉",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "订婚",
+            "嫁娶",
+            "安床",
+            "移徙",
+            "入宅",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "辰",
+          "chong_desc": "(戊辰)龙",
+          "sha": "北",
+          "hour": 19,
+          "ganZhi": "甲戌",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "赴任",
+            "出行",
+            "求财",
+            "见贵",
+            "祭祀",
+            "祈福",
+            "酬神",
+            "修造",
+            "盖屋",
+            "移徙",
+            "作灶",
+            "安床",
+            "入宅",
+            "开市"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "玄武",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "巳",
+          "chong_desc": "(己巳)蛇",
+          "sha": "西",
+          "hour": 21,
+          "ganZhi": "乙亥",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "订婚",
+            "嫁娶",
+            "安床",
+            "移徙",
+            "入宅",
+            "修造",
+            "安葬",
+            "见贵",
+            "求财"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "午",
+          "chong_desc": "(庚午)马",
+          "sha": "南",
+          "hour": 23,
+          "ganZhi": "丙子",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        }
+      ],
+      "stars": {
+        "year": "一",
+        "month": "八",
+        "day": "一"
+      }
+    },
+    {
+      "date": "2026-09-17",
+      "day": {
+        "yi": [
+          "嫁娶",
+          "祭祀",
+          "理发",
+          "进人口",
+          "作灶",
+          "移柩",
+          "冠笄",
+          "会亲友"
+        ],
+        "ji": [
+          "开仓",
+          "出货财",
+          "伐木",
+          "纳畜",
+          "开市",
+          "上梁",
+          "盖屋",
+          "破土",
+          "启钻",
+          "栽种"
+        ],
+        "ji_shen": [
+          "月空",
+          "不将",
+          "福生",
+          "金匮",
+          "鸣吠"
+        ],
+        "xiong_sha": [
+          "天罡",
+          "大时",
+          "大败",
+          "咸池",
+          "天贼",
+          "九坎",
+          "九焦"
+        ],
+        "tian_shen": "金匮",
+        "tian_shen_type": "黄道",
+        "chong": "子",
+        "chong_desc": "(戊子)鼠",
+        "sha": "北",
+        "luck": "吉"
+      },
+      "positions": {
+        "xi": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "yang_gui": {
+          "raw": "坤",
+          "desc": "西南"
+        },
+        "yin_gui": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "fu": {
+          "raw": "坎",
+          "desc": "正北"
+        },
+        "cai": {
+          "raw": "艮",
+          "desc": "东北"
+        },
+        "tai": {
+          "desc": "占门碓 房内北"
+        }
+      },
+      "hours": [
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "修造",
+            "动土",
+            "赴任"
+          ],
+          "tian_shen": "金匮",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(戊午)马",
+          "sha": "南",
+          "hour": 0,
+          "ganZhi": "甲子",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求财",
+            "见贵",
+            "嫁娶",
+            "进人口",
+            "移徙",
+            "安葬",
+            "祈福"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "天德",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "未",
+          "chong_desc": "(己未)羊",
+          "sha": "东",
+          "hour": 1,
+          "ganZhi": "乙丑",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "见贵",
+            "求财",
+            "嫁娶",
+            "入宅",
+            "移徙",
+            "安葬"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "白虎",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "申",
+          "chong_desc": "(庚申)猴",
+          "sha": "北",
+          "hour": 3,
+          "ganZhi": "丙寅",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "嫁娶",
+            "移徙",
+            "入宅",
+            "开市",
+            "交易",
+            "修造",
+            "安葬",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "玉堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "酉",
+          "chong_desc": "(辛酉)鸡",
+          "sha": "西",
+          "hour": 5,
+          "ganZhi": "丁卯",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "订婚",
+            "嫁娶",
+            "安床",
+            "移徙",
+            "入宅",
+            "修造",
+            "安葬",
+            "祭祀"
+          ],
+          "ji": [
+            "造桥",
+            "乘船"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "戌",
+          "chong_desc": "(壬戌)狗",
+          "sha": "南",
+          "hour": 7,
+          "ganZhi": "戊辰",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "出行",
+            "入宅",
+            "嫁娶",
+            "修造",
+            "安葬",
+            "赴任"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "玄武",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "亥",
+          "chong_desc": "(癸亥)猪",
+          "sha": "东",
+          "hour": 9,
+          "ganZhi": "己巳",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "赴任"
+          ],
+          "ji": [
+            "上梁",
+            "盖屋",
+            "入殓"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "子",
+          "chong_desc": "(甲子)鼠",
+          "sha": "北",
+          "hour": 11,
+          "ganZhi": "庚午",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "修造",
+            "入宅",
+            "安葬",
+            "祈福",
+            "嫁娶"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "勾陈",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "丑",
+          "chong_desc": "(乙丑)牛",
+          "sha": "西",
+          "hour": 13,
+          "ganZhi": "辛未",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "祈福",
+            "求嗣"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "寅",
+          "chong_desc": "(丙寅)虎",
+          "sha": "南",
+          "hour": 15,
+          "ganZhi": "壬申",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "祭祀"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "明堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "卯",
+          "chong_desc": "(丁卯)兔",
+          "sha": "东",
+          "hour": 17,
+          "ganZhi": "癸酉",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "诸事不宜"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "辰",
+          "chong_desc": "(戊辰)龙",
+          "sha": "北",
+          "hour": 19,
+          "ganZhi": "甲戌",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "赴任",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "入宅",
+            "开市",
+            "安葬",
+            "修造",
+            "盖屋",
+            "移徙",
+            "安床"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "朱雀",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "巳",
+          "chong_desc": "(己巳)蛇",
+          "sha": "西",
+          "hour": 21,
+          "ganZhi": "乙亥",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "求财",
+            "嫁娶",
+            "安葬"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "午",
+          "chong_desc": "(庚午)马",
+          "sha": "南",
+          "hour": 23,
+          "ganZhi": "丙子",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        }
+      ],
+      "stars": {
+        "year": "一",
+        "month": "一",
+        "day": "九"
+      }
+    },
+    {
+      "date": "2099-12-31",
+      "day": {
+        "yi": [
+          "开市",
+          "立券",
+          "开光",
+          "解除",
+          "安机械",
+          "上梁",
+          "启钻",
+          "安葬"
+        ],
+        "ji": [
+          "嫁娶",
+          "祈福"
+        ],
+        "ji_shen": [
+          "月德",
+          "时德",
+          "相日",
+          "驿马",
+          "天后",
+          "天马",
+          "天巫",
+          "福德",
+          "不将",
+          "福生",
+          "五合",
+          "鸣吠对"
+        ],
+        "xiong_sha": [
+          "五虚",
+          "归忌",
+          "白虎"
+        ],
+        "tian_shen": "白虎",
+        "tian_shen_type": "黑道",
+        "chong": "申",
+        "chong_desc": "(丙申)猴",
+        "sha": "北",
+        "luck": "凶"
+      },
+      "positions": {
+        "xi": {
+          "raw": "离",
+          "desc": "正南"
+        },
+        "yang_gui": {
+          "raw": "震",
+          "desc": "正东"
+        },
+        "yin_gui": {
+          "raw": "巽",
+          "desc": "东南"
+        },
+        "fu": {
+          "raw": "巽",
+          "desc": "东南"
+        },
+        "cai": {
+          "raw": "离",
+          "desc": "正南"
+        },
+        "tai": {
+          "desc": "仓库炉 房内南"
+        }
+      },
+      "hours": [
+        {
+          "yi": [
+            "祈福",
+            "订婚",
+            "嫁娶",
+            "开市",
+            "安葬"
+          ],
+          "ji": [
+            "造船",
+            "乘船",
+            "上梁",
+            "盖屋",
+            "入殓",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "青龙",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(甲午)马",
+          "sha": "南",
+          "hour": 0,
+          "ganZhi": "庚子",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祭祀",
+            "祈福",
+            "酬神",
+            "出行",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "安葬"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "明堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "未",
+          "chong_desc": "(乙未)羊",
+          "sha": "东",
+          "hour": 1,
+          "ganZhi": "辛丑",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "赴任",
+            "见贵",
+            "出行",
+            "求财",
+            "嫁娶",
+            "进人口",
+            "移徙",
+            "安葬"
+          ],
+          "ji": [
+            "祈福",
+            "求嗣"
+          ],
+          "tian_shen": "天刑",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "申",
+          "chong_desc": "(丙申)猴",
+          "sha": "北",
+          "hour": 3,
+          "ganZhi": "壬寅",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "修造",
+            "盖屋",
+            "移徙",
+            "安床",
+            "入宅",
+            "开市",
+            "开仓",
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "赴任",
+            "出行",
+            "见贵"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "朱雀",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "酉",
+          "chong_desc": "(丁酉)鸡",
+          "sha": "西",
+          "hour": 5,
+          "ganZhi": "癸卯",
+          "star": "一",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yin_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "赴任",
+            "修造",
+            "移徙",
+            "出行",
+            "词讼"
+          ],
+          "tian_shen": "金匮",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "戌",
+          "chong_desc": "(戊戌)狗",
+          "sha": "南",
+          "hour": 7,
+          "ganZhi": "甲辰",
+          "star": "二",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "嫁娶",
+            "移徙",
+            "入宅",
+            "开市",
+            "交易",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "修造",
+            "动土"
+          ],
+          "tian_shen": "天德",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "亥",
+          "chong_desc": "(己亥)猪",
+          "sha": "东",
+          "hour": 9,
+          "ganZhi": "乙巳",
+          "star": "三",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yin_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "艮",
+              "desc": "东北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "无"
+          ],
+          "ji": [
+            "诸事不宜"
+          ],
+          "tian_shen": "白虎",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "子",
+          "chong_desc": "(庚子)鼠",
+          "sha": "北",
+          "hour": 11,
+          "ganZhi": "丙午",
+          "star": "四",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "yin_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "酬神",
+            "求财",
+            "见贵",
+            "订婚",
+            "嫁娶",
+            "修造",
+            "安葬"
+          ],
+          "ji": [
+            "赴任",
+            "出行",
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "开光"
+          ],
+          "tian_shen": "玉堂",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "丑",
+          "chong_desc": "(辛丑)牛",
+          "sha": "西",
+          "hour": 13,
+          "ganZhi": "丁未",
+          "star": "五",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yin_gui": {
+              "raw": "兑",
+              "desc": "正西"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "坤",
+              "desc": "西南"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "赴任",
+            "入宅"
+          ],
+          "ji": [
+            "开光",
+            "修造",
+            "安葬"
+          ],
+          "tian_shen": "天牢",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "寅",
+          "chong_desc": "(壬寅)虎",
+          "sha": "南",
+          "hour": 15,
+          "ganZhi": "戊申",
+          "star": "六",
+          "positions": {
+            "xi": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "求嗣",
+            "嫁娶",
+            "移徙",
+            "入宅",
+            "开市",
+            "交易",
+            "修造",
+            "安葬",
+            "祈福",
+            "赴任",
+            "出行",
+            "求财"
+          ],
+          "ji": [
+            "无"
+          ],
+          "tian_shen": "玄武",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "卯",
+          "chong_desc": "(癸卯)兔",
+          "sha": "东",
+          "hour": 17,
+          "ganZhi": "己酉",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yang_gui": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "yin_gui": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "fu": {
+              "raw": "坎",
+              "desc": "正北"
+            },
+            "cai": {
+              "raw": "坎",
+              "desc": "正北"
+            }
+          }
+        },
+        {
+          "yi": [
+            "祈福",
+            "求嗣",
+            "订婚",
+            "嫁娶",
+            "求财",
+            "开市",
+            "交易",
+            "安床",
+            "见贵"
+          ],
+          "ji": [
+            "上梁",
+            "盖屋",
+            "入殓",
+            "赴任",
+            "出行"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "辰",
+          "chong_desc": "(甲辰)龙",
+          "sha": "北",
+          "hour": 19,
+          "ganZhi": "庚戌",
+          "star": "八",
+          "positions": {
+            "xi": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "yang_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yin_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "fu": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "赴任",
+            "见贵",
+            "出行",
+            "求财",
+            "嫁娶",
+            "进人口",
+            "移徙",
+            "安葬",
+            "修造",
+            "入宅"
+          ],
+          "ji": [
+            "祭祀",
+            "祈福",
+            "斋醮",
+            "酬神"
+          ],
+          "tian_shen": "勾陈",
+          "tian_shen_type": "黑道",
+          "tian_shen_luck": "凶",
+          "chong": "巳",
+          "chong_desc": "(乙巳)蛇",
+          "sha": "西",
+          "hour": 21,
+          "ganZhi": "辛亥",
+          "star": "九",
+          "positions": {
+            "xi": {
+              "raw": "坤",
+              "desc": "西南"
+            },
+            "yang_gui": {
+              "raw": "艮",
+              "desc": "东北"
+            },
+            "yin_gui": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "fu": {
+              "raw": "乾",
+              "desc": "西北"
+            },
+            "cai": {
+              "raw": "震",
+              "desc": "正东"
+            }
+          }
+        },
+        {
+          "yi": [
+            "订婚",
+            "嫁娶",
+            "出行",
+            "求财",
+            "开市",
+            "交易",
+            "安床"
+          ],
+          "ji": [
+            "祈福",
+            "求嗣"
+          ],
+          "tian_shen": "司命",
+          "tian_shen_type": "黄道",
+          "tian_shen_luck": "吉",
+          "chong": "午",
+          "chong_desc": "(丙午)马",
+          "sha": "南",
+          "hour": 23,
+          "ganZhi": "壬子",
+          "star": "七",
+          "positions": {
+            "xi": {
+              "raw": "离",
+              "desc": "正南"
+            },
+            "yang_gui": {
+              "raw": "震",
+              "desc": "正东"
+            },
+            "yin_gui": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "fu": {
+              "raw": "巽",
+              "desc": "东南"
+            },
+            "cai": {
+              "raw": "离",
+              "desc": "正南"
+            }
+          }
+        }
+      ],
+      "stars": {
+        "year": "九",
+        "month": "四",
+        "day": "三"
+      }
+    }
+  ]
+}

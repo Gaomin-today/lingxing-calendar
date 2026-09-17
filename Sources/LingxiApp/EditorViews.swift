@@ -35,7 +35,7 @@ struct EventEditor: View {
             HStack { Text(readOnly ? "查看安排" : (exists ? "编辑\(event.isTask ? "待办" : "日程")" : "给日子一个安排")).font(.system(size: 23, weight: .medium, design: .serif)); Spacer(); Button { dismiss() } label: { Image(systemName: "xmark") }.buttonStyle(.plain) }
             ScrollView {
                 VStack(alignment: .leading, spacing: 17) {
-                    HStack { Text("北京时间 · UTC+8").font(.system(size: 10)).foregroundStyle(Theme.secondary); Spacer(); Pill(text: event.isExternal ? event.sourceLabel : store.destinationLabel(destination, isTask: event.isTask)) }
+                    HStack { Text("北京时间 · 历史按当地钟表").font(.system(size: 10)).foregroundStyle(Theme.secondary); Spacer(); Pill(text: event.isExternal ? event.sourceLabel : store.destinationLabel(destination, isTask: event.isTask)) }
                     if readOnly { Text(store.isPendingTransferDestination(event) ? "请先打开本地副本完成转入整理，再编辑这条 Apple 日程。" : (event.externalReadOnlyReason ?? "这个来源只可查看。")).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }
                     TextField("想做些什么？", text: $event.title).font(.system(size: 20)).textFieldStyle(.plain).padding(14).background(Theme.card, in: RoundedRectangle(cornerRadius: 10)).accessibilityLabel("日程标题").disabled(readOnly || pendingTransfer != nil)
                     VStack(alignment: .leading, spacing: 16) {
@@ -188,7 +188,7 @@ struct ChatView: View {
                 Spacer()
                 if isSheet { Button { dismiss() } label: { Image(systemName: "xmark") }.buttonStyle(.plain) }
             }.padding(20)
-            HStack { Image(systemName: "calendar"); Text("正在聊：\(DateText.day(store.selectedDate))"); Spacer(); Text("UTC+8") }.font(.system(size: 10)).foregroundStyle(Theme.jade).padding(.horizontal, 20).padding(.vertical, 10).background(Theme.softJade.opacity(0.7))
+            HStack { Image(systemName: "calendar"); Text("正在聊：\(DateText.day(store.selectedDate))"); Spacer(); Text("北京时间") }.font(.system(size: 10)).foregroundStyle(Theme.jade).padding(.horizontal, 20).padding(.vertical, 10).background(Theme.softJade.opacity(0.7))
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
@@ -268,7 +268,7 @@ struct SettingsView: View {
                         Text("本地日程存于这台 Mac；已连接的 Apple 来源由系统账户同步。聊天记录只在本次运行中保留。").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                         if let error = store.storageError { Text(error).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }
                         Button("在 Finder 中查看本地数据") { NSWorkspace.shared.activateFileViewerSelecting([store.repository.fileURL]) }.buttonStyle(QuietButton()).font(.system(size: 11))
-                        Text("民用月历采用北京时间，农历年干支正月初一换年、日干支零点换日；节气日期表覆盖 2025–2027 年。四柱模块另按立春、交节及档案选择的换日口径计算。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                        Text("民用月历采用 Asia/Shanghai 时区，农历年干支正月初一换年、日干支零点换日。节气与四柱支持 1901–2099 年；黄历采用固定版本的传统规则，详见“历法与资料说明”。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     } }
                 }
             }
@@ -286,16 +286,23 @@ struct SourcesView: View {
             HStack { Text("历法与资料说明").font(.system(size: 24, weight: .medium, design: .serif)); Spacer(); Button("关闭") { dismiss() }.buttonStyle(QuietButton()) }
             ScrollView { VStack(alignment: .leading, spacing: 20) {
                 section("民用日历口径", "公历与农历由系统 Foundation 中国历法计算，使用 Asia/Shanghai 时区（现代为 UTC+8，历史夏令时随时区规则）。闰月明确标记。月历上的农历年干支按正月初一换年，日干支采用零点换日。")
-                section("月历上的节气", "月历节气日期依据香港天文台 2025–2027 年公历与农历对照表。范围外仍可使用月历和日程，但不填入未经核实的节气日期。四柱模块另外计算交节时刻。")
+                section("月历上的节气", "支持 1901–2099 年全部二十四节气，与四柱共用本地太阳黄经算法。月历在节气所在的民用日期显示标签，不表示当天零点已经交节。2025–2027 年共 72 个节气日期已逐项匹配香港天文台年表；其他年份为算法计算值。")
                 Link("香港天文台 · 公历与农历对照表 ↗", destination: URL(string: "https://www.hko.gov.hk/sc/gts/time/conversion.htm")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
                 section("四柱排盘口径", "支持 1901–2099 年。立春交接时换年，十二节交接时换月；按所选当地钟表时间定日和时柱，不校正真太阳时。档案可选零点或 23 点换日；两种口径的晚子时时干均从次日日干推起，与 lunar 的 sect=2／sect=1 对应。四柱年柱可能与月历农历年干支不同。")
                 section("交节算法与精度", "采用 lunar-swift 1.1.8 的太阳视黄经与 ΔT 算法，代码版本固定并保留 MIT 许可。已交叉核对香港天文台六个分钟级参考时刻，不能据此声称所有年份都有秒级精度；靠近交节前后 2 分钟会提示核对。")
                 Link("lunar-swift · 算法与许可 ↗", destination: URL(string: "https://github.com/6tail/lunar-swift/tree/a7ec0e9b29f84a5d98b09b9ffd31145f17470d56")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
                 section("出生档案与不确定性", "出生档案独立保存在本机，不进入阿灵的云端聊天上下文。未知时刻不补造时柱；生日遇到交节或所选换日边界时，列出可能命盘并暂停单一日运解读。时钟回拨产生重复时间时取首次，并提示歧义。")
-                section("传统关系解读", "十神、天干五合、地支六合／六冲／六害，参考《三命通会》卷二与卷五逐条列出。合不直接代表吉，冲不直接代表凶；当前只做流日关系核对，未计算旺衰、喜用与大运，不提供综合吉凶分。")
+                section("命盘规则表", "藏干、十神、纳音、十二长生、旬空使用固定的 lunar-swift 1.1.8 规则表。星运按日干对各支，自坐按本柱天干对本支；这些分类不能单独判定旺衰、喜用或吉凶。未知时柱保持空缺。")
+                section("起运、大运与流月", "起运采用该库 Yun sect 2 分钟法，顺逆需要用户明确选择传统排运参数。交运是传统规则的计算值，按真实计算时刻划分连续十年区间；流年在立春瞬间切换，流月在十二节瞬间切换。不是公历整年整月，也不在一月一日统一换运。")
+                section("个人日历解读", "以日主为基准核对流年、流月、流日十神，结合月令本气、透干与藏干根气线索。用户选择的身强／身弱只作为解释假设，不是程序判断的结论；尚未综合调候、格局、大运等条件认定喜用。行动建议是现代生活转译，不提供综合吉凶分。")
+                section("传统关系依据", "十神、天干五合、地支六合／六冲／六害，参考《三命通会》卷二、卷五，并保留对应柱位。扶抑思路参考卷七；合不直接代表吉，冲不直接代表凶。原典是传统思想资料，不构成预测效果的验证。")
                 Link("《三命通会》· 卷二 ↗", destination: URL(string: "https://zh.wikisource.org/wiki/三命通會_(四庫全書本)/卷02")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
-                section("民俗资料", "节日和神诞卡片均提供各自来源、地域与传统说明。神诞并非统一历法事实，可能存在不同日期。闰月不自动重复节庆。第一版提供基础展示，订阅提醒将在后续版本加入。")
-                section("建议与占卜", "行动建议由事项类型生成；传统文化部分不代表对未来的预测。尚未接入经核对的黄历版本，因此不提供每日或时辰吉凶。阿灵可陪你梳理心情与选择，正式卦象演算留待后续。")
+                section("日黄历与时辰", "日时宜忌、值神、冲煞、神位和九星来自 lunar-swift 1.1.8 的传统表。日黄历零点换日；月建和年／月九星按库的固定 UTC+8 交节日期切换，历史夏令时期间可与日历当地钟表的节气日期不同。时辰按晚子时 23:00 换日，分成早子、晚子等 13 个时段。黄历按日期切换，排盘按交节瞬间切换，两种口径分别保留。")
+                section("黄历字段的含义", "宜忌、黄道／黑道和吉／凶是固定版本的传统分类，不是统一历书结论或事件成功率。日常行动建议另按事项类型生成；个人解读另用出生盘与参考盘。三者不互相冒充依据。")
+                section("民俗资料", "目录目前有 24 条节日与神诞，每条保留来源、地域和简短自编说明。新增资料核对中国非遗网、地方政府、香港华人庙宇委员会与香港佛教联合会年历。不同传统可能采用不同纪念日或名称；闰月不自动重复。目录不是法定放假表，纪念日订阅提醒尚未实现。")
+                Link("香港华人庙宇委员会 · 节诞原表 ↗", destination: URL(string: "https://www.ctc.org.hk/zh-hans/festival/")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
+                Link("香港佛教联合会 · 2025 年历与纪念日期表 ↗", destination: URL(string: "https://www.hkbuddhist.org/editor_upload_image/file/calendar2025.pdf")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
+                section("建议与占卜", "民俗与个人解读用于文化体验和自我探索。阿灵可结合日程陪你梳理心情与选择；正式卦象演算尚未接入。")
                 section("提醒与重复", "本地支持一次性、每日、每周日程；修改或删除针对整个系列，重复待办完成也会结束整个系列。Apple 已有重复日程只操作本次。通知最多 52 条常规提醒，连同稍后提醒不超过 60 条，运行期间补充。")
             } }
         }.padding(30).frame(width: 580, height: 600).background(Theme.paper).foregroundStyle(Theme.ink)

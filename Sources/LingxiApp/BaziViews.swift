@@ -1,6 +1,11 @@
 import SwiftUI
 import LingxiCore
 
+enum BaziPage: String, CaseIterable, Identifiable {
+    case natal = "我的命盘", luck = "大运流年", daily = "每日解读", almanac = "黄历时辰"
+    var id: String { rawValue }
+}
+
 struct BaziWorkspaceView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var profiles: BirthProfileStore
@@ -25,13 +30,34 @@ struct BaziWorkspaceView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                heading
-                dailyCard
+        VStack(spacing: 0) {
+            heading.padding(.horizontal, 28).padding(.top, 22).padding(.bottom, 16)
+            Picker("八字与日历内容", selection: $store.baziPage) {
+                ForEach(BaziPage.allCases) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 28).padding(.bottom, 16)
+            Divider().overlay(Theme.line)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
                 profileCard
-                if let profile = profiles.activeProfile {
-                    natalContent(profile)
+                switch store.baziPage {
+                case .natal:
+                    if let profile = profiles.activeProfile { natalContent(profile) }
+                    else { dailyCard }
+                case .luck:
+                    if let profile = profiles.activeProfile {
+                        LuckCyclesView(store: store, profile: profile) { editingProfile = profile }
+                    } else { Card { Text("建立出生档案后，可以查看自己的起运、大运和流年。").font(.system(size: 13)) } }
+                case .daily:
+                    dailyCard
+                    if let profile = profiles.activeProfile,
+                       let charts = try? engine.natalCharts(for: profile), charts.count == 1,
+                       let natal = charts.first, case .success(let flow) = daily {
+                        PersonalReadingView(natal: natal, flow: flow, strength: profile.strengthAssumption ?? .unspecified).id(profile.id)
+                    } else {
+                        Card { Text(profiles.activeProfile == nil ? "建立个人档案，让这一天的干支与你的日主联系起来。" : "出生资料或参考时刻尚未形成唯一命盘；请核对上面的提示，再查看个人解读。")
+                            .font(.system(size: 12)).foregroundStyle(Theme.secondary) }
+                    }
+                case .almanac: AlmanacWorkspaceView(store: store)
                 }
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "book.closed").foregroundStyle(Theme.jade)
@@ -44,7 +70,8 @@ struct BaziWorkspaceView: View {
                     }
                     Spacer()
                 }.padding(18).background(Theme.softJade.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
-            }.padding(28)
+                }.padding(28)
+            }.id(store.baziPage)
         }
         .sheet(item: $editingProfile) { BirthProfileEditor(profiles: profiles, draft: $0) }
         .confirmationDialog("删除出生档案？", isPresented: Binding(get: { deletingProfile != nil }, set: { if !$0 { deletingProfile = nil } })) {
@@ -63,10 +90,7 @@ struct BaziWorkspaceView: View {
             Spacer()
             Button { store.select(store.calendar.gregorian.date(byAdding: .day, value: -1, to: store.selectedDate)!) } label: { Image(systemName: "chevron.left") }
                 .buttonStyle(QuietButton()).accessibilityLabel("四柱前一天")
-            DatePicker("日期", selection: Binding(get: { store.selectedDate }, set: { store.select($0) }), displayedComponents: .date)
-                .labelsHidden().environment(\.timeZone, store.calendar.gregorian.timeZone)
-                .environment(\.calendar, store.calendar.gregorian)
-                .environment(\.locale, Locale(identifier: "zh_CN")).frame(width: 132)
+            DateJumpButton(store: store, title: DateText.format(store.selectedDate, "yyyy年M月d日"))
             Button { store.select(store.calendar.gregorian.date(byAdding: .day, value: 1, to: store.selectedDate)!) } label: { Image(systemName: "chevron.right") }
                 .buttonStyle(QuietButton()).accessibilityLabel("四柱后一天")
             Button("今天") { store.select(Date()) }.buttonStyle(QuietButton())
@@ -164,7 +188,7 @@ struct BaziWorkspaceView: View {
                     }
                     ForEach(Array(charts.enumerated()), id: \.offset) { index, chart in
                         if charts.count > 1 { Text("可能 \(index + 1)").font(.system(size: 11)).foregroundStyle(Theme.secondary) }
-                        FourPillarsRow(chart: chart, dayMaster: chart.day.stemIndex)
+                        NatalChartTable(chart: chart)
                         if profile.birthTimeKnown && nearJie(chart) { boundaryWarning }
                     }
                     Text("\(profile.dayBoundary.label) · 出生地当地钟表时间 · 暂不校正真太阳时")
@@ -172,54 +196,6 @@ struct BaziWorkspaceView: View {
                     if (try? profile.isBirthTimeAmbiguous()) == true {
                         Text(BirthProfile.repeatedTimePolicyDescription).font(.system(size: 10)).foregroundStyle(Theme.vermilion)
                     }
-                }
-            }
-            if charts.count == 1, let natal = charts.first, case .success(let flow) = daily {
-                personalReading(natal: natal, flow: flow)
-            } else if charts.count > 1 {
-                Card { Text("命盘尚未确定，暂不合并成单一的日运解读。请在档案里补充出生时刻，再查看对应关系。")
-                    .font(.system(size: 12)).foregroundStyle(Theme.secondary) }
-            }
-        }
-    }
-
-    @ViewBuilder private func personalReading(natal: FourPillarsChart, flow: FourPillarsChart) -> some View {
-        let pillars: [BaziRelationInput] = [("年柱", natal.year), ("月柱", natal.month), ("日柱", natal.day), ("时柱", natal.hour)]
-            .compactMap { label, pillar in pillar.map { BaziRelationInput(label: label, stemIndex: $0.stemIndex, branchIndex: $0.branchIndex) } }
-        let result = Result { try BaziRelationshipEngine().analyze(dayMasterStemIndex: natal.day.stemIndex,
-            flowDay: BaziRelationInput(label: "流日", stemIndex: flow.day.stemIndex, branchIndex: flow.day.branchIndex), pillars: pillars) }
-        switch result {
-        case .failure(let error): Card { errorText(error.localizedDescription) }
-        case .success(let report):
-            Card {
-                VStack(alignment: .leading, spacing: 15) {
-                    HStack {
-                        Text("这一天，与你的关系").font(.system(size: 19, weight: .medium, design: .serif))
-                        Spacer()
-                        Pill(text: "传统关系 · \(report.tendency.label)", color: Theme.vermilion)
-                    }
-                    Text(report.summary).font(.system(size: 12)).foregroundStyle(Theme.secondary)
-                    HStack(alignment: .top, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("流日十神").font(.system(size: 10)).foregroundStyle(Theme.secondary)
-                            Text(report.tenGod.label).font(.system(size: 23, weight: .medium, design: .serif)).foregroundStyle(Theme.jade)
-                        }.frame(width: 95, alignment: .leading)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(report.tenGod.explanation).font(.system(size: 12)).lineSpacing(4)
-                            sourceLink(report.tenGod.sourceTitle, url: report.tenGod.sourceURL)
-                        }
-                    }.padding(16).background(Theme.softJade.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-                    ForEach(report.relations) { relation in
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(relation.title).font(.system(size: 13, weight: .medium))
-                            Text(relation.explanation).font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(3)
-                            sourceLink(relation.sourceTitle, url: relation.sourceURL)
-                        }.padding(.vertical, 5)
-                    }
-                    Divider().overlay(Theme.line)
-                    Label("可以落到生活里的小行动", systemImage: "leaf").font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.jade)
-                    Text(report.tenGod.reflection + "\n" + report.reflection).font(.system(size: 12)).lineSpacing(5)
-                    Text(report.scopeNote).font(.system(size: 10)).foregroundStyle(Theme.secondary).lineSpacing(3)
                 }
             }
         }
@@ -244,7 +220,7 @@ struct BaziWorkspaceView: View {
     }
 }
 
-private enum PillarAppearance {
+enum PillarAppearance {
     static func stemElement(_ index: Int) -> String { ["木", "火", "土", "金", "水"][index / 2] }
     static func branchElement(_ index: Int) -> String { ["水", "土", "木", "木", "土", "火", "火", "土", "金", "金", "土", "水"][index] }
     static func color(_ element: String) -> Color {
@@ -295,17 +271,38 @@ struct DailyPillarsCard: View {
     @ObservedObject var store: AppStore
     var body: some View {
         Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack { Text("每日四柱").font(.system(size: 12, weight: .medium)); Spacer(); Pill(text: "历法") }
+            VStack(alignment: .leading, spacing: 12) {
+                HStack { Text("我的日笺").font(.system(size: 13, weight: .medium, design: .serif)); Spacer(); Pill(text: "历法与个人关系") }
                 let noon = store.calendar.gregorian.date(bySettingHour: 12, minute: 0, second: 0, of: store.selectedDate)!
                 if let chart = try? FourPillarsEngine().chart(at: noon, timeZone: store.calendar.gregorian.timeZone, dayBoundary: store.birthProfiles.activeProfile?.dayBoundary ?? .midnight) {
                     Text("\(chart.year.text)年 · \(chart.month.text)月 · \(chart.day.text)日")
                         .font(.system(size: 13, design: .serif)).foregroundStyle(Theme.jade)
-                    Text("正午参考 · 时柱与交节变化可展开查看")
-                        .font(.system(size: 9)).foregroundStyle(Theme.secondary)
+                    Text("正午参考 · 年月按交节时刻切换").font(.system(size: 9)).foregroundStyle(Theme.secondary)
+                    if let natal = store.activeNatalChart,
+                       let report = try? PersonalDailyReadingEngine().analyze(natal: natal, flow: chart, strength: store.birthProfiles.activeProfile?.strengthAssumption ?? .unspecified),
+                       let day = report.periods.last {
+                        Divider().overlay(Theme.line)
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(day.tenGod.label).font(.system(size: 25, weight: .medium, design: .serif)).foregroundStyle(Theme.jade)
+                            Spacer()
+                            Text("日主 · " + report.dayMaster).font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                        }
+                        Text(day.theme).font(.system(size: 12, weight: .medium))
+                        Text("当下月令：\(report.flowMonth.pillar.branch)月 · \(report.flowMonth.relationship)").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                        Text(day.action).font(.system(size: 11)).lineSpacing(4)
+                    } else if store.birthProfiles.activeProfile != nil {
+                        Text("命盘仍有多个可能，补充出生时刻后查看个人关系。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                    }
                 }
-                Button { store.section = "四柱与八字" } label: {
-                    HStack { Text(store.birthProfiles.activeProfile == nil ? "查看四柱 · 建立个人档案" : "查看四柱与我的流日关系"); Spacer(); Image(systemName: "arrow.up.right") }
+                Button { store.baziPage = .daily; store.section = "四柱与八字" } label: {
+                    HStack { Text(store.birthProfiles.activeProfile == nil ? "查看四柱 · 建立个人档案" : "展开这一天的个人解读"); Spacer(); Image(systemName: "arrow.up.right") }
+                }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.jade)
+                Divider().overlay(Theme.line)
+                if let day = try? AlmanacEngine.shared.day(on: store.selectedDate) {
+                    Text("传统宜 · " + day.yi.prefix(5).joined(separator: " · ")).font(.system(size: 10)).foregroundStyle(Theme.secondary).lineLimit(2)
+                }
+                Button { store.baziPage = .almanac; store.section = "四柱与八字" } label: {
+                    HStack { Text("黄历 · 节气 · 时辰宜忌"); Spacer(); Image(systemName: "arrow.up.right") }
                 }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.jade)
             }
         }

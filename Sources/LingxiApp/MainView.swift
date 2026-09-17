@@ -16,7 +16,7 @@ struct MainView: View {
                         if store.section == "待办" { TaskListView(store: store) }
                         else if store.section == "四柱与八字" { BaziWorkspaceView(store: store, profiles: store.birthProfiles) }
                         else if store.section == "岁时民俗" { CultureView(store: store) }
-                        else if store.calendarMode == .month { calendarContent }
+                        else if store.calendarMode == .month { ScrollView(.vertical) { calendarContent } }
                         else { TimelineCalendarView(store: store) }
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     if store.section != "四柱与八字" {
@@ -88,7 +88,7 @@ struct MainView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) { Text(DateText.format(store.visibleMonth, "M月")).font(.system(size: 31, weight: .medium, design: .serif)); Text(DateText.format(store.visibleMonth, "yyyy")).font(.system(size: 16, weight: .light)).foregroundStyle(Theme.secondary) }
+                    DateJumpButton(store: store, title: DateText.format(store.visibleMonth, "yyyy年 M月"), large: true, focusDate: store.visibleMonth)
                     Text("\(store.calendar.info(for: store.visibleMonth).yearGanZhi)年 · 静心感受时序流转").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                 }
                 Spacer()
@@ -98,12 +98,12 @@ struct MainView: View {
             }
             HStack(spacing: 0) { ForEach(["一", "二", "三", "四", "五", "六", "日"], id: \.self) { day in Text(day).font(.system(size: 11)).foregroundStyle((day == "六" || day == "日") ? Theme.vermilion : Theme.secondary).frame(maxWidth: .infinity) } }.padding(.top, 8)
             if !store.calendar.hasSolarTermData(for: store.visibleMonth) {
-                Text("此年份暂未收录节气；已核实范围为 2025–2027 年。").font(.system(size: 10)).foregroundStyle(Theme.vermilion)
+                Text("节气计算支持 1901–2099 年。").font(.system(size: 10)).foregroundStyle(Theme.vermilion)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 7), spacing: 5) {
                 ForEach(store.calendar.monthDays(containing: store.visibleMonth), id: \.self) { date in DayCell(store: store, date: date) }
             }
-            HStack(spacing: 16) { legend("传统节日", color: Theme.vermilion); legend("岁时 / 神诞", color: Theme.jade); legend("我的日程", color: Color(hex: 0xB5A46C)); Spacer(); Text("北京时间 UTC+8").font(.system(size: 9)).foregroundStyle(Theme.secondary) }.padding(.top, 1)
+            HStack(spacing: 16) { legend("传统节日", color: Theme.vermilion); legend("岁时 / 神诞", color: Theme.jade); legend("我的日程", color: Color(hex: 0xB5A46C)); Spacer(); Text("北京时间").font(.system(size: 9)).foregroundStyle(Theme.secondary).help("Asia/Shanghai · 历史按当地钟表时间") }.padding(.top, 1)
             Spacer(minLength: 0)
             HStack(spacing: 13) {
                 Image(systemName: "leaf").font(.system(size: 20, weight: .light)).foregroundStyle(Theme.jade)
@@ -125,13 +125,18 @@ struct DayCell: View {
         let info = store.calendar.info(for: date)
         let festival = store.calendar.festivals(on: date).first
         let entries = store.occurrences(on: date)
-        Button { store.selectedDate = date } label: {
+        Button { store.select(date) } label: {
             VStack(alignment: .leading, spacing: 5) {
                 HStack { Text(DateText.format(date, "d")).font(.system(size: 17, weight: selected ? .semibold : .regular, design: .rounded)); Spacer(minLength: 0); if store.calendar.gregorian.isDateInToday(date) { Text("今").font(.system(size: 8, weight: .medium)).padding(3).background(selected ? .white.opacity(0.2) : Theme.softJade, in: Circle()) } }
                 Text(info.solarTerm ?? festival?.name ?? (info.numericLunarDay == 1 ? info.lunarMonth : info.lunarDay)).font(.system(size: 9)).lineLimit(1).foregroundStyle(selected ? .white.opacity(0.85) : (festival != nil ? Theme.vermilion : (info.solarTerm != nil ? Theme.jade : Theme.secondary)))
+                if let natal = store.activeNatalChart,
+                   let stem = BaziRelationshipEngine.stems.firstIndex(of: String(info.dayGanZhi.prefix(1))),
+                   let god = try? BaziRelationshipEngine().tenGod(dayMasterStemIndex: natal.day.stemIndex, otherStemIndex: stem) {
+                    Text(info.dayGanZhi + " · " + god.label).font(.system(size: 8)).lineLimit(1).foregroundStyle(selected ? .white.opacity(0.75) : Theme.jade)
+                }
                 Spacer(minLength: 0)
                 if let first = entries.first { HStack(spacing: 3) { Circle().fill(selected ? .white.opacity(0.7) : Color(hex: 0xB5A46C)).frame(width: 3, height: 3); Text(first.event.title).font(.system(size: 8)).lineLimit(1); if entries.count > 1 { Text("+\(entries.count - 1)").font(.system(size: 8)) } } }
-            }.padding(9).frame(maxWidth: .infinity).frame(height: 66).background(selected ? Theme.jade : (inMonth ? Theme.card : Theme.panel.opacity(0.35)), in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(selected ? Theme.jade : Theme.line.opacity(0.55), lineWidth: 1)).foregroundStyle(selected ? .white : Theme.ink).opacity(inMonth ? 1 : 0.38)
+            }.padding(9).frame(maxWidth: .infinity).frame(height: store.activeNatalChart == nil ? 72 : 88).background(selected ? Theme.jade : (inMonth ? Theme.card : Theme.panel.opacity(0.35)), in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(selected ? Theme.jade : Theme.line.opacity(0.55), lineWidth: 1)).foregroundStyle(selected ? .white : Theme.ink).opacity(inMonth ? 1 : 0.38)
         }.buttonStyle(.plain).accessibilityLabel("\(DateText.day(date))，农历\(info.lunarDate)，\(entries.count)项安排")
     }
 }
@@ -150,6 +155,7 @@ struct DayDetailView: View {
                 Text("\(info.yearGanZhi)年 · \(info.zodiac)年 · \(info.dayGanZhi)日").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                 if let term = info.solarTerm { Label(term, systemImage: "sun.horizon").font(.system(size: 13)).foregroundStyle(Theme.jade) }
                 Divider().overlay(Theme.line)
+                DayNavigationStrip(store: store)
                 DailyPillarsCard(store: store)
                 ForEach(store.calendar.festivals(on: store.selectedDate)) { festival in FestivalCard(festival: festival) }
                 HStack { Text("当日安排").font(.system(size: 13, weight: .medium)); Spacer(); Text("\(store.occurrences.count) 项").font(.system(size: 10)).foregroundStyle(Theme.secondary); Button { store.newEvent() } label: { Image(systemName: "plus.circle").foregroundStyle(Theme.jade) }.buttonStyle(.plain).accessibilityLabel("为选中日期添加日程") }
@@ -206,7 +212,7 @@ struct AdviceCard: View {
                 HStack { Image(systemName: "sparkle").foregroundStyle(Theme.jade); Text("给这一天的笺言").font(.system(size: 12, weight: .medium)) }
                 adviceLine("行动建议", text: advice.action, color: Theme.jade)
                 adviceLine("传统说法", text: advice.tradition, color: Theme.vermilion)
-                Text("未接入黄历宜忌数据 · 民俗仅供文化参考").font(.system(size: 8)).foregroundStyle(Theme.secondary)
+                Text("事项准备建议 · 日时黄历另见“黄历时辰”").font(.system(size: 8)).foregroundStyle(Theme.secondary)
             }
         }
     }
@@ -226,7 +232,8 @@ struct CultureView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Text("日子里的文化记忆").font(.system(size: 25, weight: .medium, design: .serif))
-                Text("本月节日与神诞 · 民俗因地域和传统而异").font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                Text("本月节日、神诞与节气 · 纪念日依各自地域资料标注").font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                Text("节气支持 1901–2099 年本地计算；目录收录 24 条文化纪念日，保留来源与地域，闰月不自动重复。这些日期不是法定放假安排。").font(.system(size: 10)).foregroundStyle(Theme.secondary).fixedSize(horizontal: false, vertical: true)
                 HStack { Button { store.moveMonth(-1) } label: { Image(systemName: "chevron.left") }; Text(DateText.format(store.visibleMonth, "yyyy年M月")); Button { store.moveMonth(1) } label: { Image(systemName: "chevron.right") } }.buttonStyle(QuietButton()).font(.system(size: 12))
                 ForEach(store.calendar.monthDays(containing: store.visibleMonth).filter { store.calendar.gregorian.isDate($0, equalTo: store.visibleMonth, toGranularity: .month) }, id: \.self) { date in
                     let festivals = store.calendar.festivals(on: date)
@@ -235,7 +242,7 @@ struct CultureView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Button { store.select(date); store.section = "月历" } label: { Text(DateText.day(date)).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.jade) }.buttonStyle(.plain)
                             ForEach(festivals) { festival in FestivalCard(festival: festival) }
-                            if let term { Card { HStack { Image(systemName: "sun.horizon"); Text(term); Spacer(); Pill(text: "节气 · 历法事实") }.font(.system(size: 13)) } }
+                            if let term { Card { HStack { Image(systemName: "sun.horizon"); Text(term); Spacer(); Pill(text: "节气 · 本地计算") }.font(.system(size: 13)) } }
                         }
                     }
                 }

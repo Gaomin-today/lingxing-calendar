@@ -1,6 +1,10 @@
-lunar-swift 1.1.8 — solar astronomy subset
+lunar-swift 1.1.8 — full native runtime and solar astronomy subset
 https://github.com/6tail/lunar-swift
 Commit: a7ec0e9b29f84a5d98b09b9ffd31145f17470d56
+
+The runtime Sources are bundled unchanged. The local package manifest is
+reduced to its library product. The application's timezone-aware four-pillar
+and luck-cycle adapters retain their own civil-time and interval policies.
 
 MIT License
 

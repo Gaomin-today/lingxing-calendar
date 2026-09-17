@@ -122,6 +122,10 @@ public struct FourPillarsEngine: Sendable {
         return try terms(in: year)
     }
 
+    /// Internal consumers need the same provider's padding year to close the
+    /// final supported flow-year interval at the following year's 立春.
+    internal func boundaryTerms(in year: Int) throws -> [SolarTermBoundary] { try terms(in: year) }
+
     public func chart(
         at instant: Date, timeZone: TimeZone = Self.defaultTimeZone,
         dayBoundary: BirthDayBoundary = .midnight, includeHour: Bool = true
