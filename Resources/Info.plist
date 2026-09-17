@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>灵性日历</string>
+<key>CFBundleDisplayName</key><string>灵性日历</string>
+<key>CFBundleIdentifier</key><string>com.lingxing.calendar</string>
+<key>CFBundleExecutable</key><string>LingxingCalendar</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>0.2.1</string>
+<key>CFBundleVersion</key><string>3</string>
+<key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSPrincipalClass</key><string>NSApplication</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>NSCalendarsFullAccessUsageDescription</key><string>显示你选择的系统日历，检查时间冲突，并在你明确保存或删除时更新对应日程。</string>
+<key>NSRemindersFullAccessUsageDescription</key><string>显示你选择的提醒事项清单，并在你明确操作时创建、编辑或完成待办。</string>
+</dict></plist>
