@@ -56,6 +56,8 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
     public var strengthAssumption: BaziStrengthAssumption?
     /// Opt-in homepage birthday tracking; nil preserves the default-off legacy behavior.
     public var birthdayTracking: BirthdayTracking?
+    /// nil is opt-out/default-off; only meaningful when birthdayTracking is set.
+    public var birthdayReminder: DateReminder?
 
     public static let supportedYears = 1901...2099
     public static let repeatedTimePolicyDescription = "当地时钟回拨造成重复时刻时，采用该时刻第一次出现所对应的时间；请核对出生记录。"
@@ -67,7 +69,7 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
         timeZoneIdentifier: String = "Asia/Shanghai", birthplace: String = "",
         dayBoundary: BirthDayBoundary = .midnight,
         luckGender: LuckGender? = nil, strengthAssumption: BaziStrengthAssumption? = nil,
-        birthdayTracking: BirthdayTracking? = nil
+        birthdayTracking: BirthdayTracking? = nil, birthdayReminder: DateReminder? = nil
     ) {
         self.id = id
         self.name = name
@@ -83,6 +85,7 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
         self.luckGender = luckGender
         self.strengthAssumption = strengthAssumption
         self.birthdayTracking = birthdayTracking
+        self.birthdayReminder = birthdayReminder
     }
 
     /// Analysis identity deliberately excludes presentation/reminder preferences.
@@ -91,10 +94,11 @@ public struct BirthProfile: Identifiable, Codable, Equatable, Sendable {
     public func analysisRevision() throws -> String {
         var analysisProfile = self
         analysisProfile.birthdayTracking = nil
+        analysisProfile.birthdayReminder = nil
         return try AutomationSnapshot.revision(analysisProfile)
     }
 
-    public func validate() throws { _ = try resolution() }
+    public func validate() throws { _ = try resolution(); try birthdayReminder?.validate() }
 
     /// An unknown clock time never becomes a claimed birth instant. Civil date
     /// and zone validation still runs, including wholly skipped local dates.

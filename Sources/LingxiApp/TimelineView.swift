@@ -3,18 +3,32 @@ import LingxiCore
 
 struct CalendarModeBar: View {
     @ObservedObject var store: AppStore
+    @Binding var detailVisible: Bool
     var body: some View {
         HStack(spacing: 14) {
             Picker("日历视图", selection: $store.calendarMode) { ForEach(CalendarDisplayMode.allCases) { mode in Text(mode.rawValue).tag(mode) } }
-                .pickerStyle(.segmented).labelsHidden().frame(width: 145).accessibilityLabel("月周日视图切换")
-            Text(store.calendarMode == .month ? "看时节与重要的日子" : "双击空白时段安排 · 拖动日程后确认调整")
+                .pickerStyle(.segmented).labelsHidden().frame(width: 185).accessibilityLabel("年、月、周、日视图切换")
+            Text(modeHint)
                 .font(.system(size: 10)).foregroundStyle(Theme.secondary).lineLimit(1)
             Spacer()
             if store.systemLoading { ProgressView().controlSize(.mini) }
             Button { store.showingConnections = true } label: {
                 Label(store.sourceCount == 0 ? "连接 Apple 日历" : "已选 \(store.sourceCount) 个系统来源", systemImage: "calendar.badge.clock")
             }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.jade)
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) { detailVisible.toggle() }
+            } label: {
+                Label(detailVisible ? "收起详情" : "显示详情", systemImage: detailVisible ? "sidebar.right" : "sidebar.left")
+            }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.secondary)
+                .accessibilityLabel(detailVisible ? "收起日期详情" : "显示日期详情")
         }.padding(.horizontal, 26).padding(.vertical, 12).background(Theme.card.opacity(0.7))
+    }
+    private var modeHint: String {
+        switch store.calendarMode {
+        case .year: return "纵览全年节气、节日与安排"
+        case .month: return "看时节与重要的日子"
+        case .week, .day: return "双击空白时段安排 · 拖动日程后确认调整"
+        }
     }
 }
 
@@ -33,9 +47,9 @@ struct TimelineCalendarView: View {
                     Text("北京时间 · 日程占用时间，待办记录截止日").font(.system(size: 10)).foregroundStyle(Theme.secondary).help("Asia/Shanghai · 历史按当地钟表时间")
                 }
                 Spacer()
-                Button { store.movePeriod(-1) } label: { Image(systemName: "chevron.left") }.accessibilityLabel(store.calendarMode == .week ? "上一周" : "前一天")
+                Button { store.movePeriod(-1) } label: { Image(systemName: "chevron.left") }.accessibilityLabel(periodLabel(previous: true))
                 Button("今天") { store.select(Date()) }
-                Button { store.movePeriod(1) } label: { Image(systemName: "chevron.right") }.accessibilityLabel(store.calendarMode == .week ? "下一周" : "后一天")
+                Button { store.movePeriod(1) } label: { Image(systemName: "chevron.right") }.accessibilityLabel(periodLabel(previous: false))
             }.font(.system(size: 11)).buttonStyle(QuietButton()).padding(.horizontal, 22).padding(.vertical, 19)
             HStack(spacing: 0) {
                 Text("全天").font(.system(size: 9)).foregroundStyle(Theme.secondary).frame(width: 49)
@@ -70,6 +84,14 @@ struct TimelineCalendarView: View {
     private var title: String {
         if days.count == 1 { return DateText.day(store.selectedDate) }
         return "\(DateText.format(days[0], "M月d日")) — \(DateText.format(days[6], "M月d日"))"
+    }
+    private func periodLabel(previous: Bool) -> String {
+        switch store.calendarMode {
+        case .year: return previous ? "上一年" : "下一年"
+        case .week: return previous ? "上一周" : "下一周"
+        case .day: return previous ? "前一天" : "后一天"
+        case .month: return previous ? "上个月" : "下个月"
+        }
     }
     private func branch(for hour: Int) -> String { ["丑时", "寅时", "卯时", "辰时", "巳时", "午时", "未时", "申时", "酉时", "戌时", "亥时", "子时"][hour / 2] }
     private func dayHeader(_ date: Date) -> some View {

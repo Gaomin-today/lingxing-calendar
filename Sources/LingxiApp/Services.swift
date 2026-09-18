@@ -6,6 +6,9 @@ import LingxiCore
 @MainActor final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     var onStatus: ((String) -> Void)?
     var onOpen: ((String, Date?) -> Void)?
+    /// Opens a specific civil day when a milestone notification is selected.
+    /// AppStore wires this to the calendar date selection on the main actor.
+    var onOpenDate: ((Date) -> Void)?
     var onShowCalendar: (() -> Void)?
     /// Return true only after the completed state has been saved successfully.
     var onComplete: ((String) -> Bool)?
@@ -13,14 +16,18 @@ import LingxiCore
     private let center = UNUserNotificationCenter.current()
     private var revision = 0
     private var currentEvents: [UUID: CalendarEvent]?
+    private var currentMilestones: [Milestone] = []
+    private var currentProfiles: [BirthProfile] = []
     private var queueTail: Task<Void, Never>?
     private var deferredActions: [ResponseAction] = []
     private var completedVersions: Set<String> = []
     private static let regularPrefix = "lingxi.regular."
     private static let snoozePrefix = "lingxi.snooze."
+    private static let milestonePrefix = "lingxi.milestone."
     private static let testID = "lingxi.test.delivery"
     private static let eventCategory = "LINGXI_EVENT"
     private static let taskCategory = "LINGXI_TASK"
+    private static let milestoneCategory = "LINGXI_MILESTONE"
     private static let snoozeTen = "LINGXI_SNOOZE_TEN"
     private static let snoozeHour = "LINGXI_SNOOZE_HOUR"
     private static let completeTask = "LINGXI_COMPLETE_TASK"
@@ -31,6 +38,11 @@ import LingxiCore
         let eventID: String?
         let eventVersion: String?
         let eventStart: Double?
+        let milestoneSourceKey: String?
+        let milestoneSourceID: String?
+        let milestoneSource: String?
+        let milestoneSourceVersion: String?
+        let milestoneTargetDate: String?
     }
 
     enum NotificationError: LocalizedError {
@@ -51,20 +63,23 @@ import LingxiCore
         let complete = UNNotificationAction(identifier: Self.completeTask, title: "完成待办", options: [])
         center.setNotificationCategories([
             UNNotificationCategory(identifier: Self.eventCategory, actions: [ten, hour], intentIdentifiers: [], options: []),
-            UNNotificationCategory(identifier: Self.taskCategory, actions: [ten, hour, complete], intentIdentifiers: [], options: [])
+            UNNotificationCategory(identifier: Self.taskCategory, actions: [ten, hour, complete], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: Self.milestoneCategory, actions: [], intentIdentifiers: [], options: [])
         ])
     }
 
     /// Snapshot replacement is synchronous, so a save/delete invalidates actions
     /// immediately, even while a preceding notification-center operation awaits I/O.
-    func refresh(events: [CalendarEvent], requestPermission: Bool) async {
+    func refresh(events: [CalendarEvent], milestones: [Milestone], profiles: [BirthProfile], requestPermission: Bool) async {
         revision += 1
         let version = revision
         currentEvents = Dictionary(events.map { ($0.id, $0) }, uniquingKeysWith: { _, newest in newest })
+        currentMilestones = milestones
+        currentProfiles = profiles
         let activeVersions = Set(events.compactMap(NotificationPlan.eventVersion))
         completedVersions.formIntersection(activeVersions)
         _ = try? await serialized { [self] in
-            await reconcile(events: events, requestPermission: requestPermission, version: version)
+            await reconcile(events: events, milestones: milestones, profiles: profiles, requestPermission: requestPermission, version: version)
             let waiting = deferredActions
             deferredActions.removeAll()
             for action in waiting { await perform(action) }
@@ -104,7 +119,7 @@ import LingxiCore
         return try await job.value
     }
 
-    private func reconcile(events: [CalendarEvent], requestPermission: Bool, version: Int) async {
+    private func reconcile(events: [CalendarEvent], milestones: [Milestone], profiles: [BirthProfile], requestPermission: Bool, version: Int) async {
         guard version == revision else { return }
         var settings = await center.notificationSettings()
         guard version == revision else { return }
@@ -120,8 +135,28 @@ import LingxiCore
         let now = Date()
         let tests = pending.filter { $0.identifier == Self.testID && nextFireDate($0).map { $0 > now } == true }
         let otherCount = pending.filter { !isOwned($0) }.count
-        let plan = NotificationPlan(events: events, snoozes: pending.compactMap(deferredReminder), reservedCount: tests.count + otherCount, now: now)
+        let existingMilestonePendingCount = pending.filter {
+            isMilestoneRequest($0) && nextFireDate($0).map { $0 > now } == true
+        }.count
+        let plan = NotificationPlan(events: events, snoozes: pending.compactMap(deferredReminder),
+                                    reservedCount: tests.count + otherCount + existingMilestonePendingCount, now: now)
+        var planWarnings: [String] = []
+        var milestonePlanFailed = false
+        let milestonePlan: MilestoneNotificationPlan?
+        do {
+            milestonePlan = try MilestoneNotificationPlan(milestones: milestones, profiles: profiles, now: now)
+        } catch {
+            milestonePlan = nil
+            milestonePlanFailed = true
+            planWarnings.append("重要日子提醒未能生成：" + error.localizedDescription)
+        }
         var retained = Set(plan.retainedSnoozes.map(\.id) + tests.map(\.identifier))
+        if milestonePlanFailed {
+            // A malformed source must not erase already scheduled reminders.
+            // Keep them pending until the user repairs the source and the next
+            // successful reconciliation can validate and replace them.
+            retained.formUnion(pending.filter { isMilestoneRequest($0) }.map(\.identifier))
+        }
         var existingRegular: Set<String> = []
         for reminder in plan.regularReminders {
             let fireDate = Date(timeIntervalSince1970: ceil(reminder.fireDate.timeIntervalSince1970))
@@ -135,15 +170,51 @@ import LingxiCore
                 existingRegular.insert(reminder.id)
             }
         }
+        let milestoneReminders = milestonePlan?.reminders ?? []
+        // Existing milestone requests already occupy notification slots. Count
+        // only requests that exactly match this plan; stale versions are removed
+        // below and must not reduce the capacity available to the new plan.
+        let existingMilestoneIDs = Set(milestoneReminders.compactMap { reminder -> String? in
+            let identifier = Self.milestonePrefix + reminder.id
+            guard let existing = pending.first(where: { request in
+                request.identifier == identifier
+                    && isMilestoneRequest(request)
+                    && milestoneMetadataMatches(request, reminder: reminder)
+                    && nextFireDate(request) == reminder.fireDate
+            }) else { return nil }
+            return existing.identifier
+        })
+        let occupied = tests.count + otherCount + plan.retainedSnoozes.count
+            + plan.regularReminders.count + existingMilestoneIDs.count
+        let milestoneBudget = max(0, NotificationPlan.pendingLimit - occupied)
+        let newMilestoneReminders = milestoneReminders.filter {
+            !existingMilestoneIDs.contains(Self.milestonePrefix + $0.id)
+        }
+        if newMilestoneReminders.count > milestoneBudget {
+            planWarnings.append("重要日子提醒已按系统容量安排 " + String(milestoneBudget) + "/" + String(newMilestoneReminders.count) + " 条。")
+        }
+        for reminder in milestoneReminders {
+            let identifier = Self.milestonePrefix + reminder.id
+            if existingMilestoneIDs.contains(identifier) {
+                retained.insert(identifier)
+            }
+        }
         // This center belongs to this app. Legacy v1 requests carry eventID and
         // are intentionally migrated; unrelated future categories are untouched.
         let obsolete = pending.filter { isOwned($0) && !retained.contains($0.identifier) }.map(\.identifier)
         center.removePendingNotificationRequests(withIdentifiers: obsolete)
         let staleDelivered = delivered.filter {
-            isOwned($0.request) && $0.request.identifier != Self.testID && currentEvent(for: $0.request.content) == nil
+            guard isOwned($0.request), $0.request.identifier != Self.testID else { return false }
+            if isMilestoneRequest($0.request) { return !currentMilestoneRequestValid($0.request) }
+            return currentEvent(for: $0.request.content) == nil
         }.map { $0.request.identifier }
         center.removeDeliveredNotifications(withIdentifiers: staleDelivered)
-        guard isAuthorized(settings) else { onStatus?(permissionDescription(settings)); return }
+        guard isAuthorized(settings) else {
+            var status = permissionDescription(settings)
+            if !planWarnings.isEmpty { status += "；" + planWarnings.joined(separator: "；") }
+            onStatus?(status)
+            return
+        }
         let batch = UUID().uuidString
         var errors: [String] = []
         for reminder in plan.regularReminders {
@@ -160,14 +231,31 @@ import LingxiCore
                 }
             } catch { errors.append(error.localizedDescription) }
         }
+        for reminder in newMilestoneReminders.prefix(milestoneBudget) {
+            guard version == revision else { return }
+            let identifier = Self.milestonePrefix + reminder.id
+            guard !retained.contains(identifier) else { continue }
+            let content = milestoneContent(for: reminder)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger(at: reminder.fireDate))
+            do {
+                try await center.add(request)
+                guard version == revision else {
+                    center.removePendingNotificationRequests(withIdentifiers: [identifier])
+                    return
+                }
+            } catch { errors.append(error.localizedDescription) }
+        }
         guard version == revision else { return }
         let actual = await center.pendingNotificationRequests()
         guard version == revision else { return }
         let regularCount = actual.filter { $0.identifier.hasPrefix(Self.regularPrefix) }.count
         let snoozeCount = actual.filter { $0.identifier.hasPrefix(Self.snoozePrefix) }.count
+        let milestoneCount = actual.filter { $0.identifier.hasPrefix(Self.milestonePrefix) }.count
         let presentation = settings.alertSetting == .enabled ? "已启用" : "已授权 · 横幅未开启"
         var summary = "\(presentation) · \(regularCount) 条日程提醒"
         if snoozeCount > 0 { summary += " · \(snoozeCount) 条稍后提醒" }
+        if milestoneCount > 0 { summary += " · \(milestoneCount) 条重要日子提醒" }
+        if !planWarnings.isEmpty { summary += "；" + planWarnings.joined(separator: "；") }
         if let error = errors.first { summary += "；部分安排失败：\(error)" }
         onStatus?(summary)
     }
@@ -182,7 +270,81 @@ import LingxiCore
 
     private func isOwned(_ request: UNNotificationRequest) -> Bool {
         request.identifier.hasPrefix(Self.regularPrefix) || request.identifier.hasPrefix(Self.snoozePrefix)
+            || request.identifier.hasPrefix(Self.milestonePrefix)
             || request.identifier == Self.testID || request.content.userInfo["eventID"] != nil
+    }
+
+    private func isMilestoneRequest(_ request: UNNotificationRequest) -> Bool {
+        request.identifier.hasPrefix(Self.milestonePrefix)
+    }
+
+    private func milestoneMetadataMatches(_ request: UNNotificationRequest, reminder: MilestoneScheduledReminder) -> Bool {
+        request.content.userInfo["milestoneSourceKey"] as? String == reminder.sourceKey
+            && request.content.userInfo["milestoneSourceVersion"] as? String == reminder.sourceVersion
+            && request.content.userInfo["milestoneTargetDate"] as? String == reminder.targetDate
+    }
+
+    private func milestoneContent(for reminder: MilestoneScheduledReminder) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        content.title = reminder.title
+        content.body = reminder.body
+        content.sound = .default
+        content.categoryIdentifier = Self.milestoneCategory
+        content.threadIdentifier = reminder.sourceKey
+        content.userInfo = [
+            "milestoneSourceKey": reminder.sourceKey,
+            "milestoneSourceID": reminder.sourceID.uuidString,
+            "milestoneSource": reminder.source.rawValue,
+            "milestoneSourceVersion": reminder.sourceVersion,
+            "milestoneTargetDate": reminder.targetDate
+        ]
+        return content
+    }
+
+    private func currentMilestoneRequestValid(_ request: UNNotificationRequest) -> Bool {
+        guard let key = request.content.userInfo["milestoneSourceKey"] as? String,
+              let version = request.content.userInfo["milestoneSourceVersion"] as? String,
+              let idText = request.content.userInfo["milestoneSourceID"] as? String,
+              let id = UUID(uuidString: idText),
+              let sourceText = request.content.userInfo["milestoneSource"] as? String,
+              let source = MilestoneNotificationSource(rawValue: sourceText) else { return false }
+        let snapshot: MilestoneNotificationSourceSnapshot?
+        switch source {
+        case .milestone:
+            guard let item = currentMilestones.first(where: { $0.id == id }) else { return false }
+            snapshot = try? MilestoneNotificationPlan.snapshot(for: item)
+        case .birthday:
+            guard let profile = currentProfiles.first(where: { $0.id == id }) else { return false }
+            snapshot = try? MilestoneNotificationPlan.snapshot(for: profile)
+        }
+        return snapshot?.sourceKey == key && snapshot?.version == version
+    }
+
+    private func currentMilestoneActionValid(_ action: ResponseAction) -> Bool {
+        guard let key = action.milestoneSourceKey,
+              let version = action.milestoneSourceVersion,
+              let idText = action.milestoneSourceID,
+              let id = UUID(uuidString: idText),
+              let sourceText = action.milestoneSource,
+              let source = MilestoneNotificationSource(rawValue: sourceText) else { return false }
+        let snapshot: MilestoneNotificationSourceSnapshot?
+        switch source {
+        case .milestone:
+            guard let item = currentMilestones.first(where: { $0.id == id }) else { return false }
+            snapshot = try? MilestoneNotificationPlan.snapshot(for: item)
+        case .birthday:
+            guard let profile = currentProfiles.first(where: { $0.id == id }) else { return false }
+            snapshot = try? MilestoneNotificationPlan.snapshot(for: profile)
+        }
+        return snapshot?.sourceKey == key && snapshot?.version == version
+    }
+
+    private func openMilestoneDate(_ text: String?) {
+        if let text, let date = try? MilestoneEngine().civilDate(text) {
+            onOpenDate?(date)
+        } else {
+            onShowCalendar?()
+        }
     }
 
     private func nextFireDate(_ request: UNNotificationRequest) -> Date? {
@@ -264,6 +426,17 @@ import LingxiCore
             onShowCalendar?()
             return
         }
+        if action.milestoneSourceKey != nil {
+            guard action.identifier == UNNotificationDefaultActionIdentifier else { return }
+            let valid = currentMilestoneActionValid(action)
+            if !valid {
+                onStatus?("这条重要日子提醒对应的记录已修改或删除，请查看日历。")
+                openMilestoneDate(action.milestoneTargetDate)
+                return
+            }
+            openMilestoneDate(action.milestoneTargetDate)
+            return
+        }
         guard let idText = action.eventID, let id = UUID(uuidString: idText),
               let event = currentEvents?[id] else { return }
         if action.identifier == UNNotificationDefaultActionIdentifier {
@@ -325,7 +498,9 @@ import LingxiCore
                                             withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         Task { @MainActor in
             let request = notification.request
-            let valid = self.currentEvents == nil || request.identifier == Self.testID || self.currentEvent(for: request.content) != nil
+            let validMilestone = self.currentMilestoneRequestValid(request)
+            let valid = self.currentEvents == nil || request.identifier == Self.testID
+                || self.currentEvent(for: request.content) != nil || validMilestone
             completionHandler(valid ? [.banner, .sound] : [])
         }
     }
@@ -335,7 +510,12 @@ import LingxiCore
         let info = response.notification.request.content.userInfo
         let action = ResponseAction(identifier: response.actionIdentifier, requestID: response.notification.request.identifier,
                                     eventID: info["eventID"] as? String, eventVersion: info["eventVersion"] as? String,
-                                    eventStart: info["eventStart"] as? Double)
+                                    eventStart: info["eventStart"] as? Double,
+                                    milestoneSourceKey: info["milestoneSourceKey"] as? String,
+                                    milestoneSourceID: info["milestoneSourceID"] as? String,
+                                    milestoneSource: info["milestoneSource"] as? String,
+                                    milestoneSourceVersion: info["milestoneSourceVersion"] as? String,
+                                    milestoneTargetDate: info["milestoneTargetDate"] as? String)
         Task { @MainActor in
             await self.receive(action)
             completionHandler()

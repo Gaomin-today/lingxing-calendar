@@ -21,7 +21,7 @@ public struct MilestoneOccurrence: Identifiable, Codable, Equatable, Sendable {
 }
 
 public struct MilestoneEngine: Sendable {
-    public static let timeZoneNote = "按首页北京时间的公历自然日计算，不受 Mac 所在时区影响。显示在首页倒计时，不发送系统通知。"
+    public static let timeZoneNote = "按首页北京时间的公历自然日计算，不受 Mac 所在时区影响。首页展示与系统通知分开控制。"
     public static let solarLeapDayNote = "每年重复时，2 月 29 日在非闰年按 2 月 28 日。"
     public init() {}
 

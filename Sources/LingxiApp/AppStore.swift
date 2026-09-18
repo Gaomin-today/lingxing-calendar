@@ -10,7 +10,7 @@ struct ChatMessage: Identifiable {
 }
 
 enum CalendarDisplayMode: String, CaseIterable, Identifiable {
-    case month = "月", week = "周", day = "日"
+    case year = "年", month = "月", week = "周", day = "日"
     var id: String { rawValue }
 }
 
@@ -102,6 +102,12 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
             guard let self, let event = self.events.first(where: { $0.id.uuidString == id }) else { return }
             self.select(start ?? event.start); self.showMainAction?()
         }
+        notifications.onOpenDate = { [weak self] date in
+            guard let self else { return }
+            self.select(date)
+            self.section = "日历"
+            self.showMainAction?()
+        }
         notifications.onComplete = { [weak self] id in
             guard let self, let task = self.events.first(where: { $0.id.uuidString == id && $0.isTask && !$0.isCompleted }) else { return false }
             var completed = task; completed.isCompleted = true
@@ -109,10 +115,18 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         }
         notifications.onShowCalendar = { [weak self] in self?.showMainAction?() }
         systemObservation = system.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
-        profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            guard let self else { return }
+            Task { await self.refreshNotifications(requestPermission: false) }
+        }
         noteObservation = dayNotes.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         appearanceObservation = AppearanceStore.shared.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
-        milestoneObservation = milestones.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        milestoneObservation = milestones.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            guard let self else { return }
+            Task { await self.refreshNotifications(requestPermission: false) }
+        }
         system.onChange = { [weak self] in self?.scheduleSystemReload() }
         Task { await refreshNotifications(requestPermission: false); await reloadSystemData() }
     }
@@ -209,6 +223,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     func moveMonth(_ offset: Int) { visibleMonth = calendar.gregorian.date(byAdding: .month, value: offset, to: visibleMonth)! }
     func movePeriod(_ offset: Int) {
         switch calendarMode {
+        case .year: visibleMonth = calendar.gregorian.date(byAdding: .year, value: offset, to: visibleMonth)!
         case .month: moveMonth(offset)
         case .week: select(calendar.gregorian.date(byAdding: .day, value: offset * 7, to: selectedDate)!)
         case .day: select(calendar.gregorian.date(byAdding: .day, value: offset, to: selectedDate)!)
@@ -383,7 +398,8 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     func refreshNotifications(requestPermission: Bool) async {
         guard !isPreviewMode else { notificationStatus = "隔离预览 · 不发送系统通知"; return }
         guard storageError == nil else { notificationStatus = "日程读取异常，保留已安排的系统提醒"; return }
-        await notifications.refresh(events: events, requestPermission: requestPermission)
+        await notifications.refresh(events: events, milestones: milestones.milestones,
+                                    profiles: birthProfiles.profiles, requestPermission: requestPermission)
     }
     func saveSettings(enabled: Bool, endpoint newEndpoint: String, model: String, key: String) throws {
         let cleaned = newEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -26,6 +26,8 @@ private struct DateJumpPicker: View {
     @ObservedObject var store: AppStore
     @Binding var isPresented: Bool
     @State var date: Date
+    @State private var query = ""
+    @State private var queryError: String?
     private var calendar: Calendar { store.calendar.gregorian }
     private var year: Int { calendar.component(.year, from: date) }
     private var month: Int { calendar.component(.month, from: date) }
@@ -40,6 +42,25 @@ private struct DateJumpPicker: View {
                 Button { choose(Date()) } label: {
                     Text("今天").padding(.horizontal, 8).frame(minHeight: 30).contentShape(Rectangle())
                 }.buttonStyle(.plain).foregroundStyle(Theme.jade)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Theme.secondary)
+                    TextField("输入 2026-09-18、2026年9月18日或‘明天’", text: $query)
+                        .textFieldStyle(.plain)
+                        .onSubmit { search() }
+                    Button("前往") { search() }
+                        .buttonStyle(.plain).foregroundStyle(Theme.jade)
+                        .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .padding(.horizontal, 10).frame(height: 34)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 8))
+                if let queryError {
+                    Text(queryError).font(.system(size: 9)).foregroundStyle(Theme.vermilion)
+                } else {
+                    Text("支持公历日期、今天／明天／昨天；按回车即可跳转")
+                        .font(.system(size: 9)).foregroundStyle(Theme.secondary)
+                }
             }
             HStack {
                 Picker("年份", selection: Binding(get: { year }, set: { setMonth(year: $0, month: month) })) {
@@ -84,6 +105,17 @@ private struct DateJumpPicker: View {
     }
     private func setMonth(year: Int, month: Int) { date = calendar.date(from: DateComponents(year: year, month: month, day: 1, hour: 12))! }
     private func shift(_ direction: Int) { if let next = calendar.date(byAdding: .month, value: direction, to: date), supported.contains(next) { date = next } }
+    private func search() {
+        do {
+            let parsed = try CalendarNavigation().parseDate(query, relativeTo: date)
+            guard supported.contains(parsed) else { throw CalendarNavigation.Error.unsupportedDate }
+            date = parsed
+            queryError = nil
+            choose(parsed)
+        } catch {
+            queryError = "无法识别这个日期，请使用 2026-09-18 或‘明天’。"
+        }
+    }
     private func choose(_ value: Date) { store.select(value); isPresented = false }
 }
 

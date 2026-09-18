@@ -55,6 +55,13 @@ import LingxiCore
         scheduleMenu.addItem(withTitle: "新建日程", action: #selector(newEvent), keyEquivalent: "n")
         scheduleMenu.addItem(withTitle: "和阿灵聊聊", action: #selector(openChat), keyEquivalent: "j")
         scheduleMenu.addItem(withTitle: "显示 / 隐藏桌面阿灵", action: #selector(togglePet), keyEquivalent: "")
+        let calendarMenu = NSMenu(title: "日历视图")
+        calendarMenu.addItem(withTitle: "年视图", action: #selector(showYearCalendar), keyEquivalent: "1")
+        calendarMenu.addItem(withTitle: "月视图", action: #selector(showMonthCalendar), keyEquivalent: "2")
+        calendarMenu.addItem(withTitle: "周视图", action: #selector(showWeekCalendar), keyEquivalent: "3")
+        calendarMenu.addItem(withTitle: "日视图", action: #selector(showDayCalendar), keyEquivalent: "4")
+        for item in calendarMenu.items { item.target = self; item.keyEquivalentModifierMask = [.command] }
+        let calendarItem = NSMenuItem(title: "日历视图", action: nil, keyEquivalent: ""); calendarItem.submenu = calendarMenu; scheduleMenu.addItem(calendarItem)
         for item in scheduleMenu.items { item.target = self }
         let scheduleItem = NSMenuItem(title: "日程", action: nil, keyEquivalent: ""); scheduleItem.submenu = scheduleMenu; menu.addItem(scheduleItem)
         let edit = NSMenu(title: "编辑"); edit.addItem(withTitle: "撤销", action: Selector(("undo:")), keyEquivalent: "z"); edit.addItem(withTitle: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x"); edit.addItem(withTitle: "复制", action: #selector(NSText.copy(_:)), keyEquivalent: "c"); edit.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v"); edit.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
@@ -62,6 +69,11 @@ import LingxiCore
         NSApp.mainMenu = menu
     }
     @objc func newEvent() { showMain(); store.newEvent() }
+    @objc func showYearCalendar() { showCalendar(.year) }
+    @objc func showMonthCalendar() { showCalendar(.month) }
+    @objc func showWeekCalendar() { showCalendar(.week) }
+    @objc func showDayCalendar() { showCalendar(.day) }
+    private func showCalendar(_ mode: CalendarDisplayMode) { showMain(); store.section = "日历"; store.calendarMode = mode }
     private func configureAutomation() {
         automationServer?.stop(); automationServer = nil
         guard store.automationEnabled, let router = automationRouter else { store.automationStatus = "本机 CLI 访问已关闭"; return }

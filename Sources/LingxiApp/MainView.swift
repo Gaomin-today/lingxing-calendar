@@ -3,6 +3,7 @@ import LingxiCore
 
 struct MainView: View {
     @ObservedObject var store: AppStore
+    @State private var calendarDetailVisible = true
     var body: some View {
         HStack(spacing: 0) {
             sidebar.frame(width: 196)
@@ -10,7 +11,7 @@ struct MainView: View {
             VStack(spacing: 0) {
                 header
                 Rectangle().fill(Theme.line).frame(height: 1)
-                if store.section == "日历" { CalendarModeBar(store: store) }
+                if store.section == "日历" { CalendarModeBar(store: store, detailVisible: $calendarDetailVisible) }
                 HStack(alignment: .top, spacing: 0) {
                     Group {
                         if store.section == "我的今天" { TodayWorkspaceView(store: store) }
@@ -18,12 +19,13 @@ struct MainView: View {
                         else if store.section == "四柱与八字" { BaziWorkspaceView(store: store, profiles: store.birthProfiles) }
                         else if store.section == "日笺" { DayNotesWorkspace(store: store) }
                         else if store.section == "岁时民俗" { CultureView(store: store) }
+                        else if store.calendarMode == .year { ScrollView(.vertical) { YearCalendarView(store: store) } }
                         else if store.calendarMode == .month { ScrollView(.vertical) { calendarContent } }
                         else { TimelineCalendarView(store: store) }
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                    if !["四柱与八字", "日笺", "我的今天"].contains(store.section) {
+                    if !["四柱与八字", "日笺", "我的今天"].contains(store.section), (store.section != "日历" || calendarDetailVisible) {
                         Rectangle().fill(Theme.line).frame(width: 1)
-                        DayDetailView(store: store).frame(width: store.calendarMode == .month || store.section != "日历" ? 304 : 272)
+                        DayDetailView(store: store).frame(width: store.calendarMode == .month || store.calendarMode == .year || store.section != "日历" ? 304 : 272)
                     }
                 }
             }
@@ -181,6 +183,7 @@ struct DayDetailView: View {
                 if let term = info.solarTerm { Label(term, systemImage: "sun.horizon").font(.system(size: 13)).foregroundStyle(Theme.jade) }
                 Divider().overlay(Theme.line)
                 DayNavigationStrip(store: store)
+                DayHexagramCard(store: store)
                 DailyPillarsCard(store: store)
                 DayNotesSummaryCard(store: store)
                 ForEach(store.calendar.festivals(on: store.selectedDate)) { festival in FestivalCard(festival: festival) }

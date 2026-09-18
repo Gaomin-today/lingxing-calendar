@@ -230,15 +230,19 @@ struct BirthProfileEditor: View {
                 Text("首页生日倒计时").font(.system(size: 13, weight: .medium))
                 Toggle("在首页显示这份档案的生日", isOn: Binding(
                     get: { draft.birthdayTracking != nil },
-                    set: { draft.birthdayTracking = $0 ? .solar : nil }
+                    set: {
+                        draft.birthdayTracking = $0 ? .solar : nil
+                        if !$0 { draft.birthdayReminder = nil }
+                    }
                 )).toggleStyle(.checkbox).font(.system(size: 12))
                 if draft.birthdayTracking != nil {
                     Picker("生日历法", selection: Binding(get: { draft.birthdayTracking ?? .solar }, set: { draft.birthdayTracking = $0 })) {
                         ForEach(BirthdayTracking.allCases) { Text($0.label).tag($0) }
                     }.pickerStyle(.segmented)
                     Text((draft.birthdayTracking ?? .solar).ruleNote).font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
+                    DateReminderEditor(reminder: $draft.birthdayReminder, title: "生日提醒")
                 }
-                Text("默认关闭。显示在首页倒计时，不发送系统通知；不改变命盘与已有分析。")
+                Text("默认关闭。首页展示与系统通知分开控制；不改变命盘与已有分析。")
                     .font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
             }
         }

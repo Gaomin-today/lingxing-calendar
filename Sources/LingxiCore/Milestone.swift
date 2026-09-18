@@ -13,6 +13,42 @@ public enum BirthdayTracking: String, Codable, CaseIterable, Identifiable, Senda
     }
 }
 
+
+public enum DateReminderError: Error, LocalizedError, Equatable, Sendable {
+    case daysBeforeOutOfRange, hourOutOfRange, minuteOutOfRange
+    public var errorDescription: String? {
+        switch self {
+        case .daysBeforeOutOfRange: return "提醒提前天数需为 0–365 天。"
+        case .hourOutOfRange: return "提醒小时需为 0–23。"
+        case .minuteOutOfRange: return "提醒分钟需为 0–59。"
+        }
+    }
+}
+
+/// A local homepage/system-reminder preference. It does not itself schedule a
+/// UserNotification; MilestoneNotificationPlan turns it into a dated request.
+public struct DateReminder: Codable, Equatable, Sendable {
+    public var daysBefore: Int
+    public var hour: Int
+    public var minute: Int
+    public init(daysBefore: Int = 0, hour: Int = 9, minute: Int = 0) {
+        self.daysBefore = daysBefore; self.hour = hour; self.minute = minute
+    }
+    public func validate() throws {
+        guard (0...365).contains(daysBefore) else { throw DateReminderError.daysBeforeOutOfRange }
+        guard (0...23).contains(hour) else { throw DateReminderError.hourOutOfRange }
+        guard (0...59).contains(minute) else { throw DateReminderError.minuteOutOfRange }
+    }
+    private enum CodingKeys: String, CodingKey { case daysBefore, hour, minute }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(daysBefore: try c.decodeIfPresent(Int.self, forKey: .daysBefore) ?? 0,
+                  hour: try c.decodeIfPresent(Int.self, forKey: .hour) ?? 9,
+                  minute: try c.decodeIfPresent(Int.self, forKey: .minute) ?? 0)
+        try validate()
+    }
+}
+
 public enum MilestoneKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case countdown, anniversary
     public var id: String { rawValue }
@@ -44,13 +80,15 @@ public struct Milestone: Identifiable, Codable, Equatable, Sendable {
     public var note: String
     public var createdAt: Date
     public var updatedAt: Date
+    /// nil is the legacy/default-off value.
+    public var reminder: DateReminder?
 
     public init(id: UUID = UUID(), title: String, kind: MilestoneKind = .countdown,
                 targetDate: String, repeatsAnnually: Bool = false, note: String = "",
-                createdAt: Date = Date(), updatedAt: Date = Date()) {
+                createdAt: Date = Date(), updatedAt: Date = Date(), reminder: DateReminder? = nil) {
         self.id = id; self.title = title; self.kind = kind; self.targetDate = targetDate
         self.repeatsAnnually = repeatsAnnually; self.note = note
-        self.createdAt = createdAt; self.updatedAt = updatedAt
+        self.createdAt = createdAt; self.updatedAt = updatedAt; self.reminder = reminder
     }
 
     public static func draft(kind: MilestoneKind = .countdown, on date: Date) throws -> Milestone {
@@ -62,6 +100,7 @@ public struct Milestone: Identifiable, Codable, Equatable, Sendable {
         guard note.count <= 2000 else { throw MilestoneError.invalidNote }
         _ = try MilestoneCivilDate(text: targetDate)
         guard createdAt.timeIntervalSinceReferenceDate.isFinite, updatedAt.timeIntervalSinceReferenceDate.isFinite else { throw MilestoneError.invalidTimestamp }
+        try reminder?.validate()
     }
 }
 
