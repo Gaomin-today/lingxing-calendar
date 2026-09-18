@@ -97,7 +97,8 @@ struct AgentTaskComposerTests {
     @Test func savingRequiresCurrentRevisionAndSafeReplayRules() {
         let text = compose(kind: .natal)
         #expect(text.contains("重新读取的资料和版本"))
-        #expect(text.contains("本次重新读取的 profileRevision"))
+        #expect(text.contains("本次重新读取的 analysisRevision 填为 profileRevision"))
+        #expect(text.contains("旧版本没有该字段时使用 revision"))
         #expect(text.contains("重试保持同一 ID 与同一参数"))
         #expect(text.contains("正反依据") && text.contains("strengthAssessment"))
         #expect(text.contains("revision") && text.contains("冲突") && text.contains("重新读取"))

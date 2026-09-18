@@ -282,7 +282,7 @@ struct SettingsView: View {
                         Text("本地日程存于这台 Mac；已连接的 Apple 来源由系统账户同步。聊天记录只在本次运行中保留。").font(.system(size: 11)).foregroundStyle(Theme.secondary)
                         if let error = store.storageError { Text(error).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }
                         Button("在 Finder 中查看本地数据") { NSWorkspace.shared.activateFileViewerSelecting([store.repository.fileURL]) }.buttonStyle(QuietButton()).font(.system(size: 11))
-                        Text("民用月历采用 Asia/Shanghai 时区，农历年干支正月初一换年、日干支零点换日。节气与四柱支持 1901–2099 年；黄历采用固定版本的传统规则，详见“历法与资料说明”。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                        Text("民用日历采用 Asia/Shanghai 时区，农历年干支正月初一换年、日干支零点换日。节气与四柱支持 1901–2099 年；黄历采用固定版本的传统规则，详见“历法与资料说明”。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     } }
                 }
             }
@@ -299,10 +299,10 @@ struct SourcesView: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack { Text("历法与资料说明").font(.system(size: 24, weight: .medium, design: .serif)); Spacer(); Button("关闭") { dismiss() }.buttonStyle(QuietButton()) }
             ScrollView { VStack(alignment: .leading, spacing: 20) {
-                section("民用日历口径", "公历与农历由系统 Foundation 中国历法计算，使用 Asia/Shanghai 时区（现代为 UTC+8，历史夏令时随时区规则）。闰月明确标记。月历上的农历年干支按正月初一换年，日干支采用零点换日。")
-                section("月历上的节气", "支持 1901–2099 年全部二十四节气，与四柱共用本地太阳黄经算法。月历在节气所在的民用日期显示标签，不表示当天零点已经交节。2025–2027 年共 72 个节气日期已逐项匹配香港天文台年表；其他年份为算法计算值。")
+                section("民用日历口径", "公历与农历由系统 Foundation 中国历法计算，使用 Asia/Shanghai 时区（现代为 UTC+8，历史夏令时随时区规则）。闰月明确标记。日历上的农历年干支按正月初一换年，日干支采用零点换日。")
+                section("日历上的节气", "支持 1901–2099 年全部二十四节气，与四柱共用本地太阳黄经算法。日历在节气所在的民用日期显示标签，不表示当天零点已经交节。2025–2027 年共 72 个节气日期已逐项匹配香港天文台年表；其他年份为算法计算值。")
                 Link("香港天文台 · 公历与农历对照表 ↗", destination: URL(string: "https://www.hko.gov.hk/sc/gts/time/conversion.htm")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
-                section("四柱排盘口径", "支持 1901–2099 年。立春交接时换年，十二节交接时换月；按所选当地钟表时间定日和时柱，不校正真太阳时。档案可选零点或 23 点换日；两种口径的晚子时时干均从次日日干推起，与 lunar 的 sect=2／sect=1 对应。四柱年柱可能与月历农历年干支不同。")
+                section("四柱排盘口径", "支持 1901–2099 年。立春交接时换年，十二节交接时换月；按所选当地钟表时间定日和时柱，不校正真太阳时。档案可选零点或 23 点换日；两种口径的晚子时时干均从次日日干推起，与 lunar 的 sect=2／sect=1 对应。四柱年柱可能与日历农历年干支不同。")
                 section("交节算法与精度", "采用 lunar-swift 1.1.8 的太阳视黄经与 ΔT 算法，代码版本固定并保留 MIT 许可。已交叉核对香港天文台六个分钟级参考时刻，不能据此声称所有年份都有秒级精度；靠近交节前后 2 分钟会提示核对。")
                 Link("lunar-swift · 算法与许可 ↗", destination: URL(string: "https://github.com/6tail/lunar-swift/tree/a7ec0e9b29f84a5d98b09b9ffd31145f17470d56")!).font(.system(size: 12)).foregroundStyle(Theme.jade)
                 section("出生档案与不确定性", "出生档案独立保存在本机，不进入阿灵的云端聊天上下文。未知时刻不补造时柱；生日遇到交节或所选换日边界时，列出可能命盘并暂停单一日运解读。时钟回拨产生重复时间时取首次，并提示歧义。")

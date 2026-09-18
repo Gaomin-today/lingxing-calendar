@@ -7,6 +7,8 @@ description: 使用本机灵性日历 CLI 查询个人档案、命盘、大运�
 
 通过 `lingxi` CLI 调用正在运行的 Mac 应用。应用负责历法计算、资料保存、通知和界面更新；你负责理解问题、组织分析和完成用户要求的操作。无需部署 Agent 服务、安装 Python 排盘库或直接读写应用数据文件。
 
+这份 `lingxi-calendar` 是公开的 CLI 接入说明，**不是八字 PRO 私有 Skill**。私有排盘知识保留在用户本机目录，只通过应用已启用集合的受控摘录接口查询；不要要求用户把完整私有技能文件夹交给 Agent、复制到公开仓库或随接入任务发送。
+
 ## 开始使用
 
 1. 使用用户提供的 `lingxi` 路径；已加入 PATH 时直接运行 `lingxi status` 和 `lingxi capabilities`。CLI 也随 `.app` 放在 `Contents/MacOS/lingxi`，`lingxi skill path` 返回本 Skill 所在目录。以当前返回的能力、参数和版本为准。
@@ -21,7 +23,8 @@ description: 使用本机灵性日历 CLI 查询个人档案、命盘、大运�
 - 四柱、节气、农历、十神、合冲、大运和河洛卦必须来自 CLI 结果。不要凭记忆补造干支，不用公历年份替代立春流年，不用黄历整日标签替代精确交节时刻。
 - 保留返回的时区、换日规则、参考时刻、未知时柱和候选盘。存在多个出生候选时，分别描述共有信息与差异，不任选一盘做唯一结论。缺少排运资料时，不编造大运。
 - 通过 `knowledge search --query 关键词`、`knowledge read --id 条目ID` 按需读取解释依据。命盘及旺衰先读 `chart-conventions`、`strength-analysis`；河洛卦读 `heluo-guide`；个人某日读 `daily-reading`；黄历节气读 `calendar-and-almanac`；日程与日记读 `planning-and-journal`。
-- 用户在应用中添加的本机技能目录也可由 `knowledge search` 发现，按返回的 ID 和分页继续读取所需文件。它们保留原始来源；读取 Python 源码不代表已执行脚本或完成验证。若原 Skill 使用不同真太阳时、换日或时区设置，先说明差异，不用其示例覆写应用盘面。
+- 内置公开说明保持稳定 ID，可直接查询。用户在应用中逐集合启用的私有知识，用 `knowledge search --query 具体关键词 --purpose 本次分析用途` 按需查询；`purpose` 为 3–120 字、查询至少两个字符。搜索返回临时片段 ID，再用 `knowledge read --id ID --purpose 相同用途` 读取，分页仅沿返回的 `nextOffset`。不提供用途的搜索只查内置说明，空查询不能枚举私有目录。私有接口不返回文件路径或 Python 源码文件。
+- 私有片段受单篇和集合额度约束，ID 十分钟过期，关闭集合即撤销。额度不足或资料不可用时说明限制、继续使用已有计算事实；不得反复换词拼接全文，也不改走文件系统、旧版本路径或要求导出完整技能来绕过。需要更多资料时由用户在应用中调整集合授权或额度。若参考资料使用不同真太阳时、换日或时区设置，先说明差异，不用其示例覆写应用盘面。
 - 旺衰分析应能指出具体柱位、月令、根气和相反证据。可得出偏强、偏弱或未定；不把五行数量、简单加权分数或一种神煞当完整论证。将分析结论保存为解读，保留其口径和档案版本；不擅自改用户手选的解读假设。
 - `strength show --profile UUID` 返回本地普通扶抑 `report`，`context` 中同一报告叫 `nativeStrength`；保留证据、反证、缺项和规则版本，不把它当成自动喜用神判断。`strengthBasis` 才是每日解读实际采用的前提，优先级为档案手选 `profile_override` > 有效 Agent 分析 `agent_insight` > 本地初判 `local_rule`。Agent 分析须与当前档案版本一致，可根据 `noteID` 读取依据；有效 Agent 结论为 `unspecified` 时保留未定，不再退回本地结论。
 - 河洛用 `hexagrams show --profile UUID --date YYYY-MM-DD --at HH:mm` 或已有 `context.hexagrams`。查询时分是 Asia/Shanghai；报告中的日卦按出生档案时区零点换日，独立于八字 23 点换日规则。保留有效区间、缺项和覆盖范围，交节当天可能有两段不同结果。原参考脚本与应用的跨年、交节边界不同，以应用报告口径为准，不声称原件所有行为均已验证或原样迁入。
@@ -34,6 +37,8 @@ description: 使用本机灵性日历 CLI 查询个人档案、命盘、大运�
 操作与回写流程见 [references/workflows.md](references/workflows.md)。读取和明确要求的保存、提醒、编辑属于当前任务范围，无需每一步重复确认。只问缺少且无法合理确定的关键参数。
 
 每次写操作使用一个新的 `--request-id UUID`；重试同一操作必须保留同一个 ID 和完全相同的参数。更新或删除前读取当前 `revision`；若冲突，重新读取并判断如何保留用户的新修改，不盲目覆盖。命令超时且结果未知时，先用原 ID 重试确认，不用新 ID 重建。
+
+保存解读的 `profileRevision` 优先使用本次档案返回的 `analysisRevision`；更新或删除档案仍使用完整 `revision`。`analysisRevision` 当前只排除生日追踪偏好 `birthdayTracking`，单独调整这一偏好不会使命盘分析失效；姓名、出生地备注等其他档案字段仍参与版本计算。不要自行生成这两个版本号。
 
 CLI 的 JSON 返回才是操作结果。成功后按需再次读取，并用 `open` 显示对应日期或内容。若失败，说明已完成与未完成的部分；不要声称已保存或已送达通知。当前 CLI 可读取应用已选的 Apple 来源，只创建和修改本地事项；用户明确要求写入 Apple 时说明接口范围，不自行改存本地冒充同步成功。
 

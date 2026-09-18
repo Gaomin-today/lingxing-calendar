@@ -33,12 +33,26 @@ struct QuietButton: ButtonStyle {
     @ObservedObject private var appearance = AppearanceStore.shared
     func makeBody(configuration: Configuration) -> some View {
         let _ = appearance.preferences
-        return configuration.label.padding(.horizontal, 12).padding(.vertical, 8).background(configuration.isPressed ? Theme.line : Theme.card, in: RoundedRectangle(cornerRadius: 9)).overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.line, lineWidth: 1)).foregroundStyle(Theme.ink)
+        return configuration.label.padding(.horizontal, 12).padding(.vertical, 8).background(configuration.isPressed ? Theme.line : Theme.card, in: RoundedRectangle(cornerRadius: 9)).overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.line, lineWidth: 1)).foregroundStyle(Theme.ink).contentShape(RoundedRectangle(cornerRadius: 9))
     }
 }
 struct JadeButton: ButtonStyle {
     @ObservedObject private var appearance = AppearanceStore.shared
-    func makeBody(configuration: Configuration) -> some View { configuration.label.font(.system(size: 12, weight: .medium)).padding(.horizontal, 14).padding(.vertical, 10).foregroundStyle(.white).background(appearance.primaryColor.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 9)) }
+    func makeBody(configuration: Configuration) -> some View { configuration.label.font(.system(size: 12, weight: .medium)).padding(.horizontal, 14).padding(.vertical, 10).foregroundStyle(.white).background(appearance.primaryColor.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 9)).contentShape(RoundedRectangle(cornerRadius: 9)) }
+}
+struct SidebarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SidebarButtonBody(content: configuration.label, pressed: configuration.isPressed)
+    }
+    private struct SidebarButtonBody<Content: View>: View {
+        let content: Content
+        let pressed: Bool
+        @State private var hovering = false
+        var body: some View {
+            content.background(Theme.jade.opacity(pressed ? 0.13 : hovering ? 0.055 : 0), in: RoundedRectangle(cornerRadius: 9))
+                .onHover { hovering = $0 }
+        }
+    }
 }
 struct Card<Content: View>: View {
     @ViewBuilder var content: Content

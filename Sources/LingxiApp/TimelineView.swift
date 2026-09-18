@@ -22,6 +22,9 @@ struct TimelineCalendarView: View {
     @ObservedObject var store: AppStore
     private let hourHeight: CGFloat = 56
     private var days: [Date] { store.calendarMode == .week ? store.planner.weekDays(containing: store.selectedDate) : [store.calendar.gregorian.startOfDay(for: store.selectedDate)] }
+    private var allDayAreaHeight: CGFloat {
+        days.contains { day in store.occurrences(on: day).filter { $0.event.isAllDay && !$0.event.isTask }.count > 2 } ? 72 : 44
+    }
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -88,9 +91,44 @@ struct TimelineCalendarView: View {
                 ForEach(allDay.prefix(2)) { item in
                     Button { store.editorEvent = item.event } label: { Text(item.event.title).font(.system(size: 9)).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading).padding(4).background(Theme.softJade, in: RoundedRectangle(cornerRadius: 4)) }.buttonStyle(.plain)
                 }
-                if allDay.count > 2 { Button("另 \(allDay.count - 2) 项") { store.select(date) }.buttonStyle(.plain).font(.system(size: 8)) }
-            }.frame(height: 43, alignment: .top)
+                if allDay.count > 2 { AllDayOverflowButton(store: store, date: date, occurrences: allDay) }
+            }.frame(height: allDayAreaHeight, alignment: .top)
         }.padding(.horizontal, 4).frame(maxWidth: .infinity)
+    }
+}
+
+private struct AllDayOverflowButton: View {
+    @ObservedObject var store: AppStore
+    let date: Date
+    let occurrences: [EventOccurrence]
+    @State private var showing = false
+    var body: some View {
+        Button { store.select(date); showing = true } label: {
+            Text("另 \(occurrences.count - 2) 项").font(.system(size: 9))
+                .frame(maxWidth: .infinity).frame(minHeight: 26).contentShape(Rectangle())
+        }.buttonStyle(.plain).foregroundStyle(Theme.jade)
+            .accessibilityLabel("查看\(DateText.day(date))全部\(occurrences.count)项全天安排")
+            .popover(isPresented: $showing) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(DateText.day(date) + " · 全天安排").font(.system(size: 14, weight: .medium))
+                    ScrollView {
+                        VStack(spacing: 6) {
+                            ForEach(occurrences) { occurrence in
+                                Button {
+                                    showing = false
+                                    store.editorEvent = occurrence.event
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(occurrence.event.title).font(.system(size: 12)).lineLimit(2)
+                                        Text(occurrence.event.sourceLabel).font(.system(size: 9)).foregroundStyle(Theme.secondary)
+                                    }.frame(maxWidth: .infinity, alignment: .leading).padding(9)
+                                        .background(Theme.softJade, in: RoundedRectangle(cornerRadius: 7)).contentShape(Rectangle())
+                                }.buttonStyle(.plain)
+                            }
+                        }
+                    }.frame(height: min(CGFloat(occurrences.count) * 56, 280))
+                }.padding(18).frame(width: 320).background(Theme.paper).foregroundStyle(Theme.ink)
+            }
     }
 }
 
@@ -104,15 +142,17 @@ private struct TimelineDayColumn: View {
         GeometryReader { geometry in
             ZStack(alignment: .topLeading) {
                 Rectangle().fill(store.calendar.gregorian.isDateInToday(date) ? Theme.softJade.opacity(0.16) : Theme.card.opacity(0.4))
+                    .contentShape(Rectangle())
+                    .gesture(SpatialTapGesture(count: 2).onEnded { value in store.newEvent(at: dateAt(y: value.location.y)) })
                 ForEach(0..<24) { hour in
                     VStack(spacing: 0) {
                         Rectangle().fill(Theme.line).frame(height: 1)
                         Spacer()
                         Rectangle().fill(Theme.line.opacity(0.35)).frame(height: 1)
                         Spacer()
-                    }.frame(height: hourHeight).offset(y: CGFloat(hour) * hourHeight)
+                    }.frame(height: hourHeight).offset(y: CGFloat(hour) * hourHeight).allowsHitTesting(false)
                 }
-                Rectangle().fill(Theme.line.opacity(0.8)).frame(width: 1)
+                Rectangle().fill(Theme.line.opacity(0.8)).frame(width: 1).allowsHitTesting(false)
                 ForEach(segments) { segment in
                     block(segment, width: geometry.size.width)
                 }
@@ -123,7 +163,6 @@ private struct TimelineDayColumn: View {
                     }
                 }
             }.contentShape(Rectangle())
-                .gesture(SpatialTapGesture(count: 2).onEnded { value in store.newEvent(at: dateAt(y: value.location.y)) })
                 .dropDestination(for: String.self) { items, location in
                     guard let id = items.first, id.hasPrefix("lingxing:"), let occurrence = visibleOccurrences.first(where: { "lingxing:" + $0.id == id }) else { return false }
                     store.proposeMove(occurrence, to: dateAt(y: location.y)); return true
@@ -169,7 +208,10 @@ struct FreeTimeCard: View {
                 Text("09:00–21:00 · 至少 30 分钟 · 按已显示来源计算").font(.system(size: 9)).foregroundStyle(Theme.secondary)
                 if slots.isEmpty { Text("这个时段暂时没有连续 30 分钟的空档。").font(.system(size: 10)).foregroundStyle(Theme.secondary) }
                 ForEach(slots.prefix(3)) { slot in
-                    Button { store.newEvent(at: slot.start, durationMinutes: min(60, slot.durationMinutes)) } label: { HStack { Text("\(DateText.time(slot.start))–\(DateText.time(slot.end))"); Spacer(); Text("\(slot.durationMinutes) 分钟"); Image(systemName: "plus") }.font(.system(size: 10)).foregroundStyle(Theme.jade) }.buttonStyle(.plain)
+                    Button { store.newEvent(at: slot.start, durationMinutes: min(60, slot.durationMinutes)) } label: {
+                        HStack { Text("\(DateText.time(slot.start))–\(DateText.time(slot.end))"); Spacer(); Text("\(slot.durationMinutes) 分钟"); Image(systemName: "plus") }
+                            .font(.system(size: 10)).foregroundStyle(Theme.jade).frame(minHeight: 28).contentShape(Rectangle())
+                    }.buttonStyle(.plain)
                 }
                 if slots.count > 3 { Text("另有 \(slots.count - 3) 个空档，可在日视图查看。").font(.system(size: 9)).foregroundStyle(Theme.secondary) }
             }

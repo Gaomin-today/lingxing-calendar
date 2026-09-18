@@ -50,6 +50,7 @@ import LingxiCore
         if let problem = Self.nameError(for: cleaned.name) { error = problem; return false }
         do {
             try cleaned.validate()
+            guard try diskSnapshotMatches() else { return false }
             var updated = profiles
             if let index = updated.firstIndex(where: { $0.id == cleaned.id }) { updated[index] = cleaned }
             else { updated.append(cleaned) }
@@ -66,9 +67,10 @@ import LingxiCore
 
     @discardableResult func delete(_ profile: BirthProfile) -> Bool {
         guard !isReadOnly else { return false }
-        guard profiles.contains(where: { $0.id == profile.id }) else { return true }
-        let updated = profiles.filter { $0.id != profile.id }
         do {
+            guard try diskSnapshotMatches() else { return false }
+            guard profiles.contains(where: { $0.id == profile.id }) else { return true }
+            let updated = profiles.filter { $0.id != profile.id }
             try repository.save(updated)
             let nextSelection = activeID == profile.id ? updated.first?.id : activeID
             profiles = updated
@@ -79,6 +81,17 @@ import LingxiCore
             self.error = "档案未删除，已有资料保持不变。\n\(error.localizedDescription)"
             return false
         }
+    }
+
+    /// Compare complete profiles, including homepage birthday preferences. A
+    /// structurally valid external edit must not be replaced with this process's
+    /// older snapshot. Decode failures also propagate without writing anything.
+    private func diskSnapshotMatches() throws -> Bool {
+        guard try repository.load() == profiles else {
+            error = "磁盘上的出生档案已在应用外修改，已有资料保持不变。请重启应用核对最新档案后再操作。"
+            return false
+        }
+        return true
     }
 
     static func nameError(for name: String) -> String? {

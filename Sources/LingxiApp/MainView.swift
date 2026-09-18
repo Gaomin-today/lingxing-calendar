@@ -10,7 +10,7 @@ struct MainView: View {
             VStack(spacing: 0) {
                 header
                 Rectangle().fill(Theme.line).frame(height: 1)
-                if store.section == "月历" { CalendarModeBar(store: store) }
+                if store.section == "日历" { CalendarModeBar(store: store) }
                 HStack(alignment: .top, spacing: 0) {
                     Group {
                         if store.section == "我的今天" { TodayWorkspaceView(store: store) }
@@ -23,13 +23,13 @@ struct MainView: View {
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                     if !["四柱与八字", "日笺", "我的今天"].contains(store.section) {
                         Rectangle().fill(Theme.line).frame(width: 1)
-                        DayDetailView(store: store).frame(width: store.calendarMode == .month || store.section != "月历" ? 304 : 272)
+                        DayDetailView(store: store).frame(width: store.calendarMode == .month || store.section != "日历" ? 304 : 272)
                     }
                 }
             }
         }
         .background(Theme.paper).foregroundStyle(Theme.ink)
-        .frame(minWidth: 1130, minHeight: 790)
+        .frame(minWidth: 1130, minHeight: 670)
         .preferredColorScheme(.light)
         .sheet(item: $store.editorEvent) { EventEditor(store: store, event: $0) }
         .sheet(isPresented: $store.showingChat) { ChatView(store: store, isSheet: true) }
@@ -58,39 +58,48 @@ struct MainView: View {
     }
     private var sidebarContents: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
+            Button { store.goHome() } label: { HStack(spacing: 10) {
                 ZStack { RoundedRectangle(cornerRadius: 12).fill(Theme.jade).frame(width: 40, height: 40); Image(systemName: "sun.max").font(.system(size: 23, weight: .light)).foregroundStyle(Theme.paper) }
                 VStack(alignment: .leading, spacing: 4) { Text("灵性日历").font(.system(size: 19, weight: .semibold, design: .serif)); Text("与时节同行").font(.system(size: 10)).tracking(3).foregroundStyle(Theme.secondary) }
-            }.padding(.top, 28).padding(.bottom, 26)
+                Spacer(minLength: 0)
+            }.padding(.vertical, 16).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle()) }
+                .buttonStyle(SidebarButtonStyle()).help("返回我的今天").accessibilityLabel("灵性日历，返回今日首页")
+                .padding(.top, 12).padding(.bottom, 10)
             Text("我的时光").font(.system(size: 10, weight: .medium)).tracking(2).foregroundStyle(Theme.secondary).padding(.bottom, 15)
             navItem("我的今天", icon: "sun.horizon")
-            navItem("月历", icon: "calendar")
+            navItem("日历", icon: "calendar")
             navItem("待办", icon: "checkmark.circle", count: store.pendingTasks.count)
             navItem("岁时民俗", icon: "leaf")
             navItem("四柱与八字", icon: "square.grid.2x2")
             navItem("日笺", icon: "book.pages")
-            Button { store.showingConnections = true } label: { Label("日历与清单来源", systemImage: "rectangle.stack").font(.system(size: 12)).foregroundStyle(Theme.secondary).padding(12) }.buttonStyle(.plain)
+            sidebarAction("日历与清单来源", icon: "rectangle.stack") { store.showingConnections = true }
             Rectangle().fill(Theme.line).frame(height: 1).padding(.vertical, 16)
             Text("陪伴").font(.system(size: 10, weight: .medium)).tracking(2).foregroundStyle(Theme.secondary).padding(.bottom, 15)
-            Button { store.showingChat = true } label: { Label("与阿灵聊聊", systemImage: "bubble.left.and.bubble.right").frame(maxWidth: .infinity, alignment: .leading).padding(11) }.buttonStyle(.plain).font(.system(size: 13))
-            Button { store.showingAutomation = true } label: { Label("连接自己的 Agent", systemImage: "terminal").frame(maxWidth: .infinity, alignment: .leading).padding(11) }.buttonStyle(.plain).font(.system(size: 12))
-            Button { store.togglePet() } label: { HStack { Image(systemName: "sparkle"); Text("桌面阿灵"); Spacer(); Circle().fill(store.petVisible ? Theme.jade : Theme.line).frame(width: 6, height: 6) }.padding(11) }.buttonStyle(.plain).font(.system(size: 13))
+            sidebarAction("与阿灵聊聊", icon: "bubble.left.and.bubble.right") { store.showingChat = true }
+            sidebarAction("连接自己的 Agent", icon: "terminal") { store.showingAutomation = true }
+            Button { store.togglePet() } label: { HStack { Image(systemName: "sparkle").frame(width: 17); Text("桌面阿灵"); Spacer(); Circle().fill(store.petVisible ? Theme.jade : Theme.line).frame(width: 6, height: 6) }.padding(11).frame(maxWidth: .infinity).contentShape(Rectangle()) }.buttonStyle(SidebarButtonStyle()).font(.system(size: 13)).help(store.petVisible ? "隐藏桌面灵宠" : "显示桌面灵宠")
             Spacer()
             VStack(spacing: 10) {
-                SpiritView(size: 62)
+                Button { store.showingChat = true } label: { SpiritView(size: 62).padding(7).contentShape(Rectangle()) }.buttonStyle(.plain).help("与阿灵聊聊").accessibilityLabel("点击灵宠，与阿灵聊聊")
                 Text("把日子过成自己的节奏").font(.system(size: 11, design: .serif)).foregroundStyle(Theme.jade)
                 Text("今天也有小小的好事情。 ").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                 Button("挑选灵宠 · 五行配色") { store.showingAppearance = true }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.jade)
             }.frame(maxWidth: .infinity).padding(.vertical, 14)
-            Button { store.showingSettings = true } label: { Label("偏好设置", systemImage: "slider.horizontal.3").frame(maxWidth: .infinity, alignment: .leading).padding(10) }.buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.secondary)
+            sidebarAction("偏好设置", icon: "slider.horizontal.3") { store.showingSettings = true }
             HStack { Text("本地优先"); Spacer(); Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.1")") }.font(.system(size: 9)).foregroundStyle(Theme.secondary.opacity(0.7)).padding(.horizontal, 10).padding(.top, 10).padding(.bottom, 20)
         }.padding(.horizontal, 18).background(Theme.panel)
     }
     private func navItem(_ title: String, icon: String, count: Int? = nil) -> some View {
         Button { store.section = title } label: {
             HStack(spacing: 11) { Image(systemName: icon).frame(width: 17); Text(title); Spacer(); if let count, count > 0 { Text("\(count)").font(.system(size: 10)).padding(.horizontal, 6).padding(.vertical, 2).background(Theme.jade.opacity(0.1), in: Capsule()) } }
-                .font(.system(size: 13, weight: store.section == title ? .semibold : .regular)).padding(12).background(store.section == title ? Theme.softJade : .clear, in: RoundedRectangle(cornerRadius: 9)).foregroundStyle(store.section == title ? Theme.jade : Theme.secondary)
-        }.buttonStyle(.plain).padding(.bottom, 5)
+                .font(.system(size: 13, weight: store.section == title ? .semibold : .regular)).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(store.section == title ? Theme.softJade : .clear, in: RoundedRectangle(cornerRadius: 9)).foregroundStyle(store.section == title ? Theme.jade : Theme.secondary).contentShape(Rectangle())
+        }.buttonStyle(SidebarButtonStyle()).padding(.bottom, 5).accessibilityAddTraits(store.section == title ? .isSelected : [])
+    }
+    private func sidebarAction(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 11) { Image(systemName: icon).frame(width: 17); Text(title); Spacer(minLength: 0) }
+                .font(.system(size: 12)).padding(11).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(SidebarButtonStyle()).foregroundStyle(Theme.secondary)
     }
     private var header: some View {
         HStack {
@@ -264,7 +273,7 @@ struct CultureView: View {
                     let term = store.calendar.solarTerm(on: date)
                     if !festivals.isEmpty || term != nil {
                         VStack(alignment: .leading, spacing: 10) {
-                            Button { store.select(date); store.section = "月历" } label: { Text(DateText.day(date)).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.jade) }.buttonStyle(.plain)
+                            Button { store.select(date); store.section = "日历" } label: { Text(DateText.day(date)).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.jade) }.buttonStyle(.plain)
                             ForEach(festivals) { festival in FestivalCard(festival: festival) }
                             if let term { Card { HStack { Image(systemName: "sun.horizon"); Text(term); Spacer(); Pill(text: "节气 · 本地计算") }.font(.system(size: 13)) } }
                         }

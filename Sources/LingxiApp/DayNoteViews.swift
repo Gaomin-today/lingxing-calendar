@@ -144,7 +144,7 @@ struct DayNoteEditor: View {
         let current = store.dayNotes.notes.first { $0.id == draft.id }
         guard (try? current.map(AutomationSnapshot.revision)) == originalRevision else { error = "这篇日笺已在别处修改或删除，请关闭并重新打开后编辑。"; return }
         draft.date = DateText.format(date, "yyyy-MM-dd"); draft.source = .user; draft.author = nil; draft.strengthAssessment = nil; draft.updatedAt = Date()
-        if let person = store.birthProfiles.profiles.first(where: { $0.id == draft.profileID }) { draft.profileRevision = try? AutomationSnapshot.revision(person) }
+        if let person = store.birthProfiles.profiles.first(where: { $0.id == draft.profileID }) { draft.profileRevision = try? person.analysisRevision() }
         else { draft.profileRevision = nil }
         if store.dayNotes.save(draft) { dismiss() } else { error = store.dayNotes.error }
     }

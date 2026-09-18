@@ -24,9 +24,19 @@ import LingxiCore
         NSApp.setActivationPolicy(.regular)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1360, height: 880), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.title = "灵性日历"; window.titlebarAppearsTransparent = true; window.titleVisibility = .hidden
-        window.isReleasedWhenClosed = false; window.minSize = NSSize(width: 1180, height: 830)
+        window.isReleasedWhenClosed = false; window.minSize = NSSize(width: 1130, height: 720)
         window.contentView = NSHostingView(rootView: MainView(store: store).padding(.top, 22).background(Theme.paper))
-        window.setFrameAutosaveName("LingxingMainWindow"); window.center(); window.delegate = self
+        window.setFrameAutosaveName("LingxingMainWindow")
+        if !window.setFrameUsingName("LingxingMainWindow") { window.center() }
+        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
+            var frame = window.frame
+            frame.size.width = min(frame.width, visible.width)
+            frame.size.height = min(frame.height, visible.height)
+            frame.origin.x = min(max(frame.minX, visible.minX), visible.maxX - frame.width)
+            frame.origin.y = min(max(frame.minY, visible.minY), visible.maxY - frame.height)
+            window.setFrame(frame, display: false)
+        }
+        window.delegate = self
         mainWindow = window
         setupMenu()
         store.showMainAction = { [weak self] in self?.showMain() }

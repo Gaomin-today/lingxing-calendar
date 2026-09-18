@@ -75,6 +75,7 @@ struct BirthProfileEditor: View {
                     locationFields
                     boundaryFields
                     interpretationFields
+                    birthdayFields
                     if let problem = result.problem {
                         feedback(problem, symbol: "exclamationmark.circle", color: Theme.vermilion)
                     }
@@ -219,6 +220,26 @@ struct BirthProfileEditor: View {
                     Text("通常无需填写。保持未确定时，优先采用与你当前档案匹配的 Agent 分析，否则使用本地旺衰初判；手动指定身强或身弱将优先使用此处设定。")
                         .font(.system(size: 11)).foregroundStyle(Theme.secondary).padding(.top, 6)
                 }.font(.system(size: 12))
+            }
+        }
+    }
+
+    private var birthdayFields: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("首页生日倒计时").font(.system(size: 13, weight: .medium))
+                Toggle("在首页显示这份档案的生日", isOn: Binding(
+                    get: { draft.birthdayTracking != nil },
+                    set: { draft.birthdayTracking = $0 ? .solar : nil }
+                )).toggleStyle(.checkbox).font(.system(size: 12))
+                if draft.birthdayTracking != nil {
+                    Picker("生日历法", selection: Binding(get: { draft.birthdayTracking ?? .solar }, set: { draft.birthdayTracking = $0 })) {
+                        ForEach(BirthdayTracking.allCases) { Text($0.label).tag($0) }
+                    }.pickerStyle(.segmented)
+                    Text((draft.birthdayTracking ?? .solar).ruleNote).font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
+                }
+                Text("默认关闭。显示在首页倒计时，不发送系统通知；不改变命盘与已有分析。")
+                    .font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
             }
         }
     }
