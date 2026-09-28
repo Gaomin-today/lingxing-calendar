@@ -1,12 +1,14 @@
 import SwiftUI
 import Combine
 import LingxiCore
+import LingxiAgent
 
 struct ChatMessage: Identifiable {
     let id = UUID()
     var isUser: Bool
     var text: String
     var containsSystemData = false
+    var agentRunID: String? = nil
 }
 
 enum CalendarDisplayMode: String, CaseIterable, Identifiable {
@@ -42,12 +44,29 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     @Published var messages: [ChatMessage] = [ChatMessage(isUser: false, text: "我是阿灵，陪你把日子安排得从容一点。\n\n试着说：提醒我明天下午三点开会。你也可以选一个日子，和我聊聊那天的安排。")]
     @Published var draft: ParsedEvent?
     @Published var isThinking = false
+    /// Agent progress is kept separate from chat messages so the UI can show
+    /// a bounded execution trace without exposing model reasoning text.
+    @Published private(set) var agentStatuses: [AgentStatus] = []
+    @Published private(set) var agentPhase: AgentPhase?
+    @Published private(set) var agentStatusMessage: String?
+    @Published private(set) var agentEvidenceCount = 0
+    @Published private(set) var pendingAgentAction: AgentActionProposal?
+    @Published private(set) var agentActionInFlight = false
+    @Published private(set) var agentActionReceipt: AgentActionReceipt?
     @Published var notificationStatus = "尚未启用"
     @Published var cloudEnabled = UserDefaults.standard.bool(forKey: "cloudEnabled")
     @Published var endpoint = UserDefaults.standard.string(forKey: "endpoint") ?? ""
     @Published var modelName = UserDefaults.standard.string(forKey: "modelName") ?? ""
     let calendar = CalendarEngine()
     let birthProfiles: BirthProfileStore
+    let dayNotes: DayNoteStore
+    let agentConfiguration: AgentConfigurationStore
+    let agentQuality = AgentQualityStore()
+    @Published var showingAutomation = false
+    @Published var automationEnabled = UserDefaults.standard.object(forKey: "automationEnabled") as? Bool ?? true
+    @Published var automationStatus = "尚未启动"
+    @Published var highlightedNoteID: UUID?
+    var automationSettingsChanged: (() -> Void)?
     let scheduler = EventScheduler()
     let planner = PlanningEngine()
     let system = SystemCalendarService()
@@ -55,14 +74,99 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     private var systemTask: Task<Void, Never>?
     private var systemObservation: AnyCancellable?
     private var profileObservation: AnyCancellable?
+    private var noteObservation: AnyCancellable?
     private var systemRevision = 0
     let repository: EventRepository
     let notifications = NotificationService()
     private var saveBlocked = false
     private var conversationTask: Task<Void, Never>?
+    private var agentRuntime: AgentRuntime?
+    private var agentRequestID: String?
+    private var agentTools = TypedToolRegistry()
+    private var cloudAgentTools = TypedToolRegistry()
+    private var agentActionHandler: ((AutomationRequest) async -> AutomationResponse)?
     var showPetAction: (() -> Void)?
     var showMainAction: (() -> Void)?
     var showChatAction: (() -> Void)?
+
+    /// The application wires the read-only router after AppStore is created.
+    /// Keeping this setter small lets previews and tests use an empty registry.
+    func configureAgentTools(_ tools: TypedToolRegistry, cloudTools: TypedToolRegistry = TypedToolRegistry()) {
+        agentTools = tools
+        cloudAgentTools = cloudTools
+    }
+
+    /// The router supplies the same journal-backed mutation path used by the
+    /// CLI. Agent proposals remain inert until `confirmAgentAction()` runs.
+    func configureAgentActions(_ handler: @escaping (AutomationRequest) async -> AutomationResponse) {
+        agentActionHandler = handler
+    }
+
+    func cancelAgentAction() {
+        guard !agentActionInFlight else { return }
+        pendingAgentAction = nil
+    }
+
+    func confirmAgentAction() {
+        guard let proposal = pendingAgentAction, let handler = agentActionHandler, !agentActionInFlight else { return }
+        pendingAgentAction = nil
+        agentActionInFlight = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let response = await handler(proposal.request)
+            agentActionInFlight = false
+            guard response.ok, let result = response.result?.objectValue else {
+                pendingAgentAction = proposal
+                let failure = response.error?.message ?? "写入未完成。"
+                messages.append(ChatMessage(isUser: false, text: "未保存：" + failure))
+                return
+            }
+            let id = result["id"]?.stringValue ?? ""
+            let entity = result["entity"]?.stringValue ?? "notes"
+            let revision = result["revision"]?.stringValue
+            agentActionReceipt = AgentActionReceipt(requestID: proposal.request.requestID ?? "", method: proposal.request.method,
+                                                    entity: entity, entityID: id, revision: revision)
+            let revisionText = revision.map { "\n版本：\(String($0.prefix(12)))" } ?? ""
+            messages.append(ChatMessage(isUser: false, text: "已保存到本地\(proposal.kind == "insight" ? "分析" : "日笺")。\(revisionText)"))
+        }
+    }
+
+    func undoAgentAction() {
+        guard let receipt = agentActionReceipt, !agentActionInFlight,
+              let revision = receipt.revision, !receipt.entityID.isEmpty,
+              let handler = agentActionHandler else { return }
+        let method: String
+        if receipt.entity == "notes" {
+            method = receipt.method.hasPrefix("insights.") ? "insights.delete" : "journal.delete"
+        } else if receipt.entity == "events" {
+            method = "events.delete"
+        } else {
+            method = "profiles.delete"
+        }
+        let request = AutomationRequest(requestID: UUID().uuidString, method: method,
+                                        params: .object(["id": .string(receipt.entityID), "revision": .string(revision)]))
+        agentActionInFlight = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let response = await handler(request)
+            agentActionInFlight = false
+            if response.ok {
+                agentActionReceipt = nil
+                messages.append(ChatMessage(isUser: false, text: "已撤销这次本地写入。"))
+            } else {
+                messages.append(ChatMessage(isUser: false, text: "撤销未完成：" + (response.error?.message ?? "请重新读取后再试。")))
+            }
+        }
+    }
+
+    /// Ask the in-flight runtime to stop after its current model/tool call.
+    /// The runtime owns cancellation state, so this does not mutate calendar
+    /// data and is safe to call repeatedly from the chat UI.
+    func stopAgent() {
+        guard let runtime = agentRuntime, let requestID = agentRequestID else { return }
+        agentStatusMessage = "正在停止本次解读…"
+        Task { await runtime.cancel(requestID: requestID) }
+    }
 
     var isPreviewMode: Bool { Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview" }
     init() {
@@ -77,6 +181,10 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
             ? dataURL.deletingLastPathComponent().appendingPathComponent("preview-profiles.json")
             : BirthProfileRepository.defaultURL()
         birthProfiles = BirthProfileStore(fileURL: profileURL)
+        let noteURL = dataURL.deletingLastPathComponent().appendingPathComponent(Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview" ? "preview-notes.json" : "notes.json")
+        dayNotes = DayNoteStore(fileURL: noteURL)
+        let agentConfigURL = dataURL.deletingLastPathComponent().appendingPathComponent("agent-config", isDirectory: true)
+        agentConfiguration = AgentConfigurationStore(directoryURL: agentConfigURL)
         do { events = try repository.load() }
         catch { storageError = "本地日程读取失败，已保留原文件。\n\(error.localizedDescription)"; saveBlocked = true }
         notifications.onStatus = { [weak self] text in self?.notificationStatus = text }
@@ -92,6 +200,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         notifications.onShowCalendar = { [weak self] in self?.showMainAction?() }
         systemObservation = system.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        noteObservation = dayNotes.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         system.onChange = { [weak self] in self?.scheduleSystemReload() }
         Task { await refreshNotifications(requestPermission: false); await reloadSystemData() }
     }
@@ -138,6 +247,15 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         return cachedNatalCharts
     }
     var activeNatalChart: FourPillarsChart? { let charts = activeNatalCharts; return charts.count == 1 ? charts.first : nil }
+    func strength(for profile: BirthProfile) -> BaziStrengthAssumption {
+        if let selected = profile.strengthAssumption, selected != .unspecified { return selected }
+        return dayNotes.latestAssessment(for: profile)?.strengthAssessment ?? .unspecified
+    }
+    func setAutomationEnabled(_ enabled: Bool) {
+        automationEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "automationEnabled")
+        automationSettingsChanged?()
+    }
     func moveMonth(_ offset: Int) { visibleMonth = calendar.gregorian.date(byAdding: .month, value: offset, to: visibleMonth)! }
     func movePeriod(_ offset: Int) {
         switch calendarMode {
@@ -174,7 +292,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         } else { updated.start = start; updated.end = start.addingTimeInterval(duration) }
         editorEvent = updated
     }
-    @discardableResult func save(_ event: CalendarEvent, toCalendarID destination: String? = nil) -> Bool {
+    @discardableResult func save(_ event: CalendarEvent, toCalendarID destination: String? = nil, requestNotificationPermission: Bool = true) -> Bool {
         guard !isPendingTransferDestination(event) else { status = "请先打开本地副本完成转入整理，再修改 Apple 日程。"; return false }
         if !event.isExternal, let completed = localTransfers.completedReceipt(for: event.id) {
             status = "这条日程已转入\(completed.sourceLabel)。请关闭旧编辑器，从 Apple 来源重新打开后修改。"
@@ -197,7 +315,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         var updated = events
         if let index = updated.firstIndex(where: { $0.id == event.id }) { updated[index] = event }
         else { updated.append(event) }
-        return persist(updated, message: "已保存到本地：\(event.title)（不会写入 Apple）")
+        return persist(updated, message: "已保存到本地：\(event.title)（不会写入 Apple）", requestNotificationPermission: requestNotificationPermission)
     }
     private func showSavedSystemEvent(_ event: CalendarEvent) {
         if let choice = destinationCalendars.first(where: { $0.id == event.externalCalendarID }) { setSource(choice, selected: true) }
@@ -242,14 +360,14 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         }
         return false
     }
-    @discardableResult func delete(_ event: CalendarEvent) -> Bool {
+    @discardableResult func delete(_ event: CalendarEvent, requestNotificationPermission: Bool = true) -> Bool {
         guard !isPendingTransferDestination(event) else { status = "请先打开本地副本完成转入整理，再删除 Apple 日程。"; return false }
         guard pendingTransfer(for: event) == nil else { status = "请先在编辑器中完成转入后的本地副本整理。"; return false }
         if event.isExternal {
             do { try system.delete(event); scheduleSystemReload(); status = "已从系统来源删除「\(event.title)」"; return true }
             catch { status = "未删除：\(error.localizedDescription)"; return false }
         }
-        return persist(events.filter { $0.id != event.id }, message: "已删除「\(event.title)」")
+        return persist(events.filter { $0.id != event.id }, message: "已删除「\(event.title)」", requestNotificationPermission: requestNotificationPermission)
     }
     func toggleCompleted(_ event: CalendarEvent) {
         guard !isPendingTransferDestination(event) else { status = "请先打开本地副本完成转入整理，再修改完成状态。"; return }
@@ -297,12 +415,12 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
             systemEvents = system.canReadEvents ? loadedEvents : []; if !system.canReadReminders { systemReminders = [] }; systemSyncMessage = error.localizedDescription
         }
     }
-    @discardableResult private func persist(_ updated: [CalendarEvent], message: String) -> Bool {
+    @discardableResult private func persist(_ updated: [CalendarEvent], message: String, requestNotificationPermission: Bool = true) -> Bool {
         guard !saveBlocked else { return false }
         do {
             try repository.save(updated)
             events = updated; status = message
-            Task { await refreshNotifications(requestPermission: updated.contains { $0.reminderMinutes != nil && !$0.isCompleted }) }
+            Task { await refreshNotifications(requestPermission: requestNotificationPermission && updated.contains { $0.reminderMinutes != nil && !$0.isCompleted }) }
             return true
         } catch { status = "保存失败：\(error.localizedDescription)"; return false }
     }
@@ -336,7 +454,20 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isThinking else { return }
         draft = nil
+        agentStatuses = []
+        agentPhase = nil
+        agentStatusMessage = nil
+        agentEvidenceCount = 0
+        pendingAgentAction = nil
+        agentActionReceipt = nil
         messages.append(ChatMessage(isUser: true, text: text))
+        // Note requests do not contain an event time, so the offline calendar
+        // parser would otherwise ask for a time before the Agent can draft
+        // the requested content.
+        if cloudEnabled && requestsAgentNote(text) {
+            askCloud(text)
+            return
+        }
         switch NaturalLanguageParser().parse(text) {
         case .event(let parsed):
             draft = parsed
@@ -350,22 +481,237 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         }
     }
     private func askCloud(_ text: String) {
+        guard agentConfiguration.loadErrors.isEmpty else {
+            messages.append(ChatMessage(isUser: false, text: "阿灵配置读取失败，请在偏好设置的「阿灵配置」中查看并重新读取文件。原文件已保留，本次未发送远程请求。"))
+            return
+        }
         isThinking = true
+        agentStatuses = []
+        agentPhase = .classify
+        agentStatusMessage = "选择解读方式"
+        agentEvidenceCount = 0
+        let requestID = UUID().uuidString
+        agentRequestID = requestID
         let info = calendar.info(for: selectedDate)
         let contextEntries = occurrences.filter { !$0.event.isExternal || cloudIncludeSystemData }
         let context = "选中日期：\(DateText.day(selectedDate))，农历\(info.lunarDate)，\(info.yearGanZhi)。已登记事项：\(contextEntries.map { $0.event.title }.joined(separator: "、"))。所有日期为北京时间。"
-        let sharesSystemData = cloudIncludeSystemData && contextEntries.contains { $0.event.isExternal }
+        // A permitted tool read or a previous reply can supply Apple data even
+        // when this date has no external entries. Keep the whole reply marked
+        // so turning sharing off also excludes later paraphrases from history.
+        let sharesSystemData = cloudIncludeSystemData
         let history = Array(messages.filter { !$0.containsSystemData || cloudIncludeSystemData }.suffix(12))
-        conversationTask = Task {
-            defer { isThinking = false }
+        let historyText = history.map { message in
+            let speaker = message.isUser ? "用户" : "阿灵"
+            return "\(speaker)：\(message.text)"
+        }.joined(separator: "\n")
+        // Capture configuration values before leaving the main actor. The
+        // gateway is Sendable and therefore never reaches into AppStore while
+        // the request is in flight.
+        let endpoint = self.endpoint
+        let modelName = self.modelName
+        let credential = KeychainCredential.read()
+        let availableTools = cloudAgentTools.availableTools
+        let dayISO = DateText.format(selectedDate, "yyyy-MM-dd")
+        let includeSystemData = cloudIncludeSystemData
+        let configurationSnapshot = AgentConfigurationSnapshot(values: agentConfiguration.values)
+        // Cloud chat receives only the references needed for this turn. The
+        // full in-app registry also contains profiles, charts, notes and
+        // knowledge files; exposing those to a future structured gateway
+        // would make an accidental model tool call a privacy disclosure.
+        let cloudToolNames: Set<AgentToolName> = includeSystemData ? [.dayContext, .eventsContext] : [.dayContext]
+        let sourceTools = cloudAgentTools
+        var cloudHandlers: [AgentToolName: TypedToolRegistry.Handler] = [:]
+        for name in cloudToolNames where availableTools.contains(name) {
+            cloudHandlers[name] = { call in try await sourceTools.read(call) }
+        }
+        let cloudTools = TypedToolRegistry(handlers: cloudHandlers)
+        let cloudAvailableTools = cloudTools.availableTools
+        let gateway = ClosureModelGateway { request in
+            // Collect the selected day's deterministic evidence before the
+            // model generates its structured answer. Later requested reads
+            // still go through the same restricted cloud registry.
+            if request.step == 1 {
+                var calls: [AgentToolCall] = []
+                if cloudAvailableTools.contains(.dayContext) {
+                    calls.append(AgentToolCall(name: .dayContext, arguments: [
+                        "date": .string(dayISO), "at": .string("12:00")
+                    ]))
+                }
+                // The router's events.list intentionally returns selected
+                // Apple sources as well as local records. Only expose that
+                // tool when the user has opted into sharing system data.
+                if includeSystemData && cloudAvailableTools.contains(.eventsContext) {
+                    calls.append(AgentToolCall(name: .eventsContext, arguments: [
+                        "date": .string(dayISO)
+                    ]))
+                }
+                if !calls.isEmpty {
+                    return AgentModelResponse(toolCalls: calls, finished: false)
+                }
+            }
+            let mergedContext = [context, "既往对话：\n\(historyText)"].joined(separator: "\n\n")
+            let reply = try await AssistantService.reply(endpoint: endpoint, model: modelName,
+                                                         key: credential, messages: [],
+                                                         context: mergedContext, structuredAgent: true,
+                                                         agentContext: request.context, agentMessages: request.messages)
+            return AgentResponseCodec.decode(reply)
+        }
+        let chatSkill = configurationSnapshot.chatSkill(includeSystemData: includeSystemData)
+        let runtime = AgentRuntime(driver: gateway, tools: cloudTools,
+                                   skillRegistry: SkillRegistry(skills: [chatSkill]),
+                                   contextBuilder: PromptContextBuilder(configuration: configurationSnapshot.configuration),
+                                   budget: .deep, modelName: modelName)
+        agentRuntime = runtime
+        conversationTask = Task { [weak self] in
+            guard let self else { return }
+            var completedResult: AgentRunResult?
+            var inspectionFailure: String?
             do {
-                let reply = try await AssistantService.reply(endpoint: endpoint, model: modelName, key: KeychainCredential.read(), messages: history, context: context)
-                if !Task.isCancelled { messages.append(ChatMessage(isUser: false, text: reply, containsSystemData: sharesSystemData)) }
-            } catch is CancellationError { }
-            catch { messages.append(ChatMessage(isUser: false, text: "远程对话未完成：\(error.localizedDescription)\n你仍可使用本地日程指令和日期建议。")) }
+                // The initial evidence read consumes one round. Reserve the
+                // deep budget so a cloud answer can still request another day
+                // or repair a citation after that deterministic bootstrap.
+                let request = AgentRequest(requestID: requestID, text: text, mode: .deep,
+                                           sessionID: nil, submittedAt: Date())
+                let result = try await runtime.run(request)
+                completedResult = result
+                agentStatuses = result.statuses
+                agentPhase = result.statuses.last?.phase ?? .final
+                agentStatusMessage = result.statuses.last?.message ?? "整理结果"
+                agentEvidenceCount = result.ledger.sourceCount
+                var answer = result.answer.conclusion
+                if !result.answer.evidence.isEmpty {
+                    let evidenceLines = result.answer.evidence.prefix(8).map { evidence in
+                        let source = evidence.sourceRef.split(separator: ":").dropFirst().first.map { String($0) } ?? evidence.sourceRef
+                        let revision = evidence.sourceRevision.map { " @\(String($0.prefix(8)))" } ?? ""
+                        return "• \(evidence.claim) · \(source)\(revision)"
+                    }
+                    answer += "\n\n依据\n" + evidenceLines.joined(separator: "\n")
+                }
+                if !result.answer.uncertainty.isEmpty {
+                    answer += "\n\n不确定性：" + result.answer.uncertainty.joined(separator: "；")
+                }
+                if !Task.isCancelled {
+                    messages.append(ChatMessage(isUser: false, text: answer, containsSystemData: sharesSystemData,
+                                                agentRunID: requestID))
+                    pendingAgentAction = agentActionProposal(for: text, body: answer)
+                }
+            } catch let error as AgentRuntimeError {
+                inspectionFailure = error.localizedDescription
+                if error == .cancelled {
+                    agentPhase = .cancelled
+                    agentStatusMessage = error.localizedDescription
+                    agentStatuses.append(AgentStatus(phase: .cancelled, message: error.localizedDescription, completed: true))
+                } else {
+                    agentPhase = .failed
+                    agentStatusMessage = error.localizedDescription
+                    agentStatuses.append(AgentStatus(phase: .failed, message: error.localizedDescription, completed: true))
+                    messages.append(ChatMessage(isUser: false, text: "远程对话未完成：\(error.localizedDescription)\n你仍可使用本地日程指令和日期建议。", agentRunID: requestID))
+                }
+            } catch is CancellationError {
+                inspectionFailure = AgentRuntimeError.cancelled.localizedDescription
+                agentPhase = .cancelled
+                agentStatusMessage = AgentRuntimeError.cancelled.localizedDescription
+                agentStatuses.append(AgentStatus(phase: .cancelled, message: AgentRuntimeError.cancelled.localizedDescription, completed: true))
+            } catch {
+                inspectionFailure = error.localizedDescription
+                agentPhase = .failed
+                agentStatusMessage = error.localizedDescription
+                agentStatuses.append(AgentStatus(phase: .failed, message: error.localizedDescription, completed: true))
+                messages.append(ChatMessage(isUser: false, text: "远程对话未完成：\(error.localizedDescription)\n你仍可使用本地日程指令和日期建议。", agentRunID: requestID))
+            }
+            let trace = await runtime.latestTrace(requestID: requestID)
+            agentQuality.record(requestID: requestID, result: completedResult, trace: trace, model: modelName,
+                                failure: inspectionFailure)
+            isThinking = false
+            agentRuntime = nil
+            agentRequestID = nil
         }
     }
+
+    /// Only an explicit user request creates a write proposal. Model prose is
+    /// used as content, never as permission to write by itself.
+    private func agentActionProposal(for text: String, body: String) -> AgentActionProposal? {
+        let value = text.lowercased()
+        guard requestsAgentNote(value) else { return nil }
+        let insight = value.contains("保存分析") || value.contains("洞察") || value.contains("解读")
+        let date = DateText.format(selectedDate, "yyyy-MM-dd")
+        let label = insight ? "分析" : "日笺"
+        let title = "阿灵" + label + " · " + date
+        var params: [String: JSONValue] = [
+            "date": .string(date),
+            "title": .string(title),
+            "body": .string(String(body.prefix(90_000))),
+            "author": .string("阿灵")
+        ]
+        if let profileID = birthProfiles.activeID,
+           let profile = birthProfiles.profiles.first(where: { $0.id == profileID }),
+           let revision = try? AutomationSnapshot.revision(profile) {
+            params["profileID"] = .string(profileID.uuidString)
+            params["profileRevision"] = .string(revision)
+        }
+        let method = insight ? "insights.save" : "journal.create"
+        let request = AutomationRequest(requestID: UUID().uuidString, method: method, params: .object(params))
+        return AgentActionProposal(kind: insight ? "insight" : "journal", title: title,
+                                   summary: "将这次解读保存到本地" + label + "，写入后可撤销。", request: request)
+    }
+
+    private func requestsAgentNote(_ text: String) -> Bool {
+        let value = text.lowercased()
+        let negative = ["不要记", "别记", "不用记", "不保存", "不要保存"].contains { value.contains($0) }
+        guard !negative else { return false }
+        if ["保存到日笺", "保存到日记", "存到日笺", "写进日笺", "保存建议", "保存分析"].contains(where: { value.contains($0) }) {
+            return true
+        }
+        return value.contains("记下来")
+    }
     /// Returns a conflicted candidate for the chat's own editor sheet.
+    /// The Agent-aware path uses the same confirmation card but persists the
+    /// confirmed local event through the journal-backed Router.
+    func confirmDraftWithJournal() async -> CalendarEvent? {
+        guard let draft else { return nil }
+        let event = CalendarEvent(title: draft.title, start: draft.start,
+                                   end: draft.start.addingTimeInterval(Double(draft.durationMinutes * 60)),
+                                   notes: draft.notes, repeatRule: EventRepeat(rawValue: draft.repeatRule) ?? .none,
+                                   reminderMinutes: draft.reminderMinutes < 0 ? nil : draft.reminderMinutes)
+        if !conflicts(for: event).isEmpty {
+            self.draft = nil
+            messages.append(ChatMessage(isUser: false, text: "这个时段与已有安排重叠，请在日程编辑器中检查后确认保存。"))
+            return event
+        }
+        guard let handler = agentActionHandler else { return confirmDraft() }
+        var params: [String: JSONValue] = [
+            "title": .string(event.title),
+            "start": (try? .from(event.start)) ?? .null,
+            "end": (try? .from(event.end)) ?? .null,
+            "notes": .string(event.notes),
+            "isAllDay": .bool(event.isAllDay),
+            "repeatRule": .string(event.repeatRule.rawValue),
+            "reminderMinutes": event.reminderMinutes.map { .number(Double($0)) } ?? .null,
+            "isCompleted": .bool(event.isCompleted),
+            "isTask": .bool(event.isTask),
+            "destination": .string("local")
+        ]
+        if let value = event.taskHasDueDate { params["taskHasDueDate"] = .bool(value) }
+        if let value = event.taskDueHasTime { params["taskDueHasTime"] = .bool(value) }
+        if let value = event.location { params["location"] = .string(value) }
+        let request = AutomationRequest(requestID: UUID().uuidString, method: "events.create", params: .object(params))
+        agentActionInFlight = true
+        let response = await handler(request)
+        agentActionInFlight = false
+        guard response.ok, let result = response.result?.objectValue else {
+            messages.append(ChatMessage(isUser: false, text: "日程未保存：" + (response.error?.message ?? "请重试。")))
+            return nil
+        }
+        self.draft = nil
+        select(event.start)
+        let id = result["id"]?.stringValue ?? ""
+        let revision = result["revision"]?.stringValue
+        agentActionReceipt = AgentActionReceipt(requestID: request.requestID ?? "", method: request.method,
+                                                entity: "events", entityID: id, revision: revision)
+        messages.append(ChatMessage(isUser: false, text: "已保存到本地日程：\(event.title)\n\(DateText.full(event.start))。"))
+        return nil
+    }
+
     func confirmDraft() -> CalendarEvent? {
         guard let draft else { return nil }
         let event = CalendarEvent(title: draft.title, start: draft.start, end: draft.start.addingTimeInterval(Double(draft.durationMinutes * 60)), notes: draft.notes, repeatRule: EventRepeat(rawValue: draft.repeatRule) ?? .none, reminderMinutes: draft.reminderMinutes < 0 ? nil : draft.reminderMinutes)

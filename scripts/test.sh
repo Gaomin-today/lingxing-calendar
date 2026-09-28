@@ -13,4 +13,4 @@ if [[ -d "$TEST_FRAMEWORKS/Testing.framework" ]]; then
     ARGS+=(-Xlinker -rpath -Xlinker "$TEST_FRAMEWORKS")
     ARGS+=(-Xlinker -rpath -Xlinker "$DEV_PATH/Library/Developer/usr/lib")
 fi
-swift test "${ARGS[@]}"
+swift test "${ARGS[@]}" "$@"

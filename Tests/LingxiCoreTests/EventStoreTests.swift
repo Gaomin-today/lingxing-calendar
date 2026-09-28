@@ -33,6 +33,21 @@ struct EventStoreTests {
         #expect(try Data(contentsOf: url) == original)
     }
 
+    @Test func testCorruptionAfterLoadCannotBeOverwrittenByStaleOrEmptySave() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let repository = EventRepository(fileURL: directory.appendingPathComponent("events.json"))
+        let event = CalendarEvent(title: "合成测试日程", start: date("2026-09-18T15:00:00"))
+        try repository.save([event])
+        let previouslyLoaded = try repository.load()
+        for corrupt in [Data("interrupted write".utf8), Data("[{\"title\":\"missing required fields\"}]".utf8)] {
+            try corrupt.write(to: repository.fileURL)
+            #expect(throws: (any Error).self) { try repository.save(previouslyLoaded) }
+            #expect(throws: (any Error).self) { try repository.save([]) }
+            #expect(try Data(contentsOf: repository.fileURL) == corrupt)
+        }
+    }
+
     @Test func testDailyRepeatCrossesMonthAndDoesNotPrecedeSeriesStart() {
         let event = CalendarEvent(title: "静心", start: date("2026-01-31T09:00:00"), repeatRule: .daily)
         let occurrences = EventScheduler().occurrences(
