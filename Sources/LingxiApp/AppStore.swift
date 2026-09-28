@@ -12,7 +12,7 @@ struct ChatMessage: Identifiable {
 }
 
 enum CalendarDisplayMode: String, CaseIterable, Identifiable {
-    case month = "月", week = "周", day = "日"
+    case year = "年", month = "月", week = "周", day = "日"
     var id: String { rawValue }
 }
 
@@ -20,7 +20,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     @Published var selectedDate = Date() { didSet { scheduleSystemReload() } }
     @Published var visibleMonth = Date() { didSet { scheduleSystemReload() } }
     @Published var events: [CalendarEvent] = []
-    @Published var section = "月历"
+    @Published var section = "我的今天"
     @Published var calendarMode: CalendarDisplayMode = .month
     @Published var baziPage: BaziPage = .natal
     @Published var showingConnections = false
@@ -62,7 +62,10 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     let dayNotes: DayNoteStore
     let agentConfiguration: AgentConfigurationStore
     let agentQuality = AgentQualityStore()
+    let milestones: MilestoneStore
     @Published var showingAutomation = false
+    @Published var showingAppearance = false
+    @Published var agentTask: AgentTaskRequest?
     @Published var automationEnabled = UserDefaults.standard.object(forKey: "automationEnabled") as? Bool ?? true
     @Published var automationStatus = "尚未启动"
     @Published var highlightedNoteID: UUID?
@@ -75,6 +78,10 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     private var systemObservation: AnyCancellable?
     private var profileObservation: AnyCancellable?
     private var noteObservation: AnyCancellable?
+    private var appearanceObservation: AnyCancellable?
+    private var milestoneObservation: AnyCancellable?
+    private var strengthCache: [UUID: (BirthProfile, StrengthAssessmentReport)] = [:]
+    private var hexagramCache: (BirthProfile, Date, Result<HeluoReport, Error>)?
     private var systemRevision = 0
     let repository: EventRepository
     let notifications = NotificationService()
@@ -185,12 +192,20 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         dayNotes = DayNoteStore(fileURL: noteURL)
         let agentConfigURL = dataURL.deletingLastPathComponent().appendingPathComponent("agent-config", isDirectory: true)
         agentConfiguration = AgentConfigurationStore(directoryURL: agentConfigURL)
+        let milestoneURL = dataURL.deletingLastPathComponent().appendingPathComponent(Bundle.main.bundleIdentifier == "com.lingxing.calendar.preview" ? "preview-milestones.json" : "milestones.json")
+        milestones = MilestoneStore(fileURL: milestoneURL)
         do { events = try repository.load() }
         catch { storageError = "本地日程读取失败，已保留原文件。\n\(error.localizedDescription)"; saveBlocked = true }
         notifications.onStatus = { [weak self] text in self?.notificationStatus = text }
         notifications.onOpen = { [weak self] id, start in
             guard let self, let event = self.events.first(where: { $0.id.uuidString == id }) else { return }
             self.select(start ?? event.start); self.showMainAction?()
+        }
+        notifications.onOpenDate = { [weak self] date in
+            guard let self else { return }
+            self.select(date)
+            self.section = "日历"
+            self.showMainAction?()
         }
         notifications.onComplete = { [weak self] id in
             guard let self, let task = self.events.first(where: { $0.id.uuidString == id && $0.isTask && !$0.isCompleted }) else { return false }
@@ -199,8 +214,18 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         }
         notifications.onShowCalendar = { [weak self] in self?.showMainAction?() }
         systemObservation = system.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
-        profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        profileObservation = birthProfiles.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            guard let self else { return }
+            Task { await self.refreshNotifications(requestPermission: false) }
+        }
         noteObservation = dayNotes.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        appearanceObservation = AppearanceStore.shared.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        milestoneObservation = milestones.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            guard let self else { return }
+            Task { await self.refreshNotifications(requestPermission: false) }
+        }
         system.onChange = { [weak self] in self?.scheduleSystemReload() }
         Task { await refreshNotifications(requestPermission: false); await reloadSystemData() }
     }
@@ -236,6 +261,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         return scheduler.occurrences(of: allEvents, from: from, to: calendar.gregorian.date(byAdding: .day, value: 1, to: from)!)
     }
     func select(_ date: Date) { selectedDate = date; visibleMonth = date }
+    func goHome() { select(Date()); section = "我的今天" }
     private var cachedNatalProfile: BirthProfile?
     private var cachedNatalCharts: [FourPillarsChart] = []
     var activeNatalCharts: [FourPillarsChart] {
@@ -249,7 +275,44 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     var activeNatalChart: FourPillarsChart? { let charts = activeNatalCharts; return charts.count == 1 ? charts.first : nil }
     func strength(for profile: BirthProfile) -> BaziStrengthAssumption {
         if let selected = profile.strengthAssumption, selected != .unspecified { return selected }
-        return dayNotes.latestAssessment(for: profile)?.strengthAssessment ?? .unspecified
+        return dayNotes.latestAssessment(for: profile)?.strengthAssessment ?? nativeStrength(for: profile).assessment
+    }
+    func strengthSource(for profile: BirthProfile) -> String {
+        if let selected = profile.strengthAssumption, selected != .unspecified { return "档案中的手动设定" }
+        if let note = dayNotes.latestAssessment(for: profile) { return "Agent 分析 · " + (note.author ?? "外部 Agent") }
+        return "本地规则初判 · " + nativeStrength(for: profile).ruleVersion
+    }
+    func nativeStrength(for profile: BirthProfile) -> StrengthAssessmentReport {
+        if let cached = strengthCache[profile.id], cached.0 == profile { return cached.1 }
+        let charts = (try? FourPillarsEngine().natalCharts(for: profile)) ?? []
+        let report = StrengthAssessmentEngine().analyze(charts: charts, profile: profile)
+        if strengthCache.count > 30 { strengthCache.removeAll() }
+        strengthCache[profile.id] = (profile, report)
+        return report
+    }
+    func personalHexagrams(for profile: BirthProfile, at instant: Date) -> Result<HeluoReport, Error> {
+        if let cached = hexagramCache, cached.0 == profile, cached.1 == instant { return cached.2 }
+        let result = Result { try HeluoEngine().calculate(for: profile, at: instant) }
+        hexagramCache = (profile, instant, result)
+        return result
+    }
+    var selectedNoon: Date {
+        calendar.gregorian.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+    }
+    func prepareAgentTask(_ kind: AgentCalendarTaskKind, event: CalendarEvent? = nil, on date: Date? = nil, referenceTime: String = "12:00") {
+        let eventDate = event.flatMap { $0.isTask && !$0.hasDueDate ? nil : $0.start }
+        agentTask = AgentTaskRequest(kind: kind, date: date ?? eventDate ?? selectedDate, referenceTime: referenceTime,
+                                     profileID: birthProfiles.activeID, eventID: event?.id)
+    }
+    func open(note: DayNote) {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = calendar.gregorian
+        formatter.timeZone = calendar.gregorian.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let date = formatter.date(from: note.date) { select(date) }
+        if let id = note.profileID, birthProfiles.profiles.contains(where: { $0.id == id }) { birthProfiles.activeID = id }
+        highlightedNoteID = note.id; section = "日笺"
     }
     func setAutomationEnabled(_ enabled: Bool) {
         automationEnabled = enabled
@@ -259,6 +322,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     func moveMonth(_ offset: Int) { visibleMonth = calendar.gregorian.date(byAdding: .month, value: offset, to: visibleMonth)! }
     func movePeriod(_ offset: Int) {
         switch calendarMode {
+        case .year: visibleMonth = calendar.gregorian.date(byAdding: .year, value: offset, to: visibleMonth)!
         case .month: moveMonth(offset)
         case .week: select(calendar.gregorian.date(byAdding: .day, value: offset * 7, to: selectedDate)!)
         case .day: select(calendar.gregorian.date(byAdding: .day, value: offset, to: selectedDate)!)
@@ -374,7 +438,10 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         if event.isExternal {
             do { try system.setCompleted(event, completed: !event.isCompleted); scheduleSystemReload(); status = event.isCompleted ? "已恢复待办" : "已完成待办" }
             catch { status = "未修改：\(error.localizedDescription)" }
-        } else { var changed = event; changed.isCompleted.toggle(); _ = save(changed) }
+        } else {
+            guard var changed = events.first(where: { $0.id == event.id }), changed.isTask else { status = "这条待办已删除或变更，请重新查看。"; return }
+            changed.isCompleted.toggle(); _ = save(changed)
+        }
     }
     func setSource(_ choice: SystemCalendarChoice, selected: Bool) {
         if choice.isReminder { if selected { selectedReminderIDs.insert(choice.id) } else { selectedReminderIDs.remove(choice.id) } }
@@ -430,7 +497,8 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     func refreshNotifications(requestPermission: Bool) async {
         guard !isPreviewMode else { notificationStatus = "隔离预览 · 不发送系统通知"; return }
         guard storageError == nil else { notificationStatus = "日程读取异常，保留已安排的系统提醒"; return }
-        await notifications.refresh(events: events, requestPermission: requestPermission)
+        await notifications.refresh(events: events, milestones: milestones.milestones,
+                                    profiles: birthProfiles.profiles, requestPermission: requestPermission)
     }
     func saveSettings(enabled: Bool, endpoint newEndpoint: String, model: String, key: String) throws {
         let cleaned = newEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -645,7 +713,7 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
         ]
         if let profileID = birthProfiles.activeID,
            let profile = birthProfiles.profiles.first(where: { $0.id == profileID }),
-           let revision = try? AutomationSnapshot.revision(profile) {
+           let revision = try? profile.analysisRevision() {
             params["profileID"] = .string(profileID.uuidString)
             params["profileRevision"] = .string(revision)
         }
@@ -668,7 +736,10 @@ enum CalendarDisplayMode: String, CaseIterable, Identifiable {
     /// The Agent-aware path uses the same confirmation card but persists the
     /// confirmed local event through the journal-backed Router.
     func confirmDraftWithJournal() async -> CalendarEvent? {
-        guard let draft else { return nil }
+        guard !agentActionInFlight, let draft else { return nil }
+        // The journal writes local records only. Preserve the existing Apple
+        // destination selected on the confirmation card through its adapter.
+        guard defaultDestination(isTask: false) == "local" else { return confirmDraft() }
         let event = CalendarEvent(title: draft.title, start: draft.start,
                                    end: draft.start.addingTimeInterval(Double(draft.durationMinutes * 60)),
                                    notes: draft.notes, repeatRule: EventRepeat(rawValue: draft.repeatRule) ?? .none,

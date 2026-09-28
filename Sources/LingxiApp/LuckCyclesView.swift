@@ -122,5 +122,5 @@ struct LuckCyclesView: View {
         let formatter = DateFormatter(); formatter.dateFormat = format; formatter.locale = Locale(identifier: "zh_CN"); formatter.timeZone = TimeZone(identifier: profile.timeZoneIdentifier)
         return formatter.string(from: date)
     }
-    private func jump(_ instant: Date) { store.select(instant); store.section = "月历" }
+    private func jump(_ instant: Date) { store.select(instant); store.section = "日历" }
 }

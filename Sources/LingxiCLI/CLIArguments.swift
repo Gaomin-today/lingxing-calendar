@@ -9,7 +9,7 @@ struct CLIArguments {
 
     static let methods: [String: Set<String>] = [
         "profiles": ["list", "show", "create", "update", "delete"],
-        "chart": ["show"], "luck": ["show"], "calendar": ["day"],
+        "chart": ["show"], "luck": ["show"], "strength": ["show"], "hexagrams": ["show"], "calendar": ["day"],
         "events": ["list", "show", "create", "update", "delete"], "tasks": ["list", "show", "complete"],
         "journal": ["list", "show", "create", "update", "delete"],
         "insights": ["list", "show", "save", "delete"], "knowledge": ["search", "read"],
@@ -109,7 +109,8 @@ let cliHelp = """
   status | capabilities              查看应用状态与能力
   context --profile ID --date YYYY-MM-DD
   profiles list|show|create|update|delete
-  chart show | luck show | calendar day
+  chart show | luck show | strength show | calendar day
+  hexagrams show --profile ID --date YYYY-MM-DD [--at HH:mm]
   events list|show|create|update|delete | tasks list|show|complete
   journal list|show|create|update|delete
   insights list|show|save|delete
@@ -119,7 +120,7 @@ let cliHelp = """
 
 参数：
   --profile ID --date YYYY-MM-DD --id ID --from DATE --to DATE
-  --revision REV --query TEXT --limit N
+  --revision REV --query TEXT --purpose TEXT --limit N
   --input FILE|-                     JSON 参数对象；- 表示标准输入
   --param KEY=JSON                    显式传递 JSON 类型的单个参数
   --request-id ID                     所有写入命令必需；重试请复用编号

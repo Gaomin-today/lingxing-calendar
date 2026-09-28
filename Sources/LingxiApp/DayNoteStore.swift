@@ -36,11 +36,20 @@ import LingxiCore
         guard let id = note.profileID else { return false }
         guard let profile = profiles.first(where: { $0.id == id }) else { return true }
         guard let revision = note.profileRevision else { return note.kind == .insight }
-        return (try? AutomationSnapshot.revision(profile)) != revision
+        return !matchesProfileRevision(revision, profile: profile)
     }
     func latestAssessment(for profile: BirthProfile) -> DayNote? {
-        guard let revision = try? AutomationSnapshot.revision(profile) else { return nil }
-        return notes.filter { $0.kind == .insight && $0.profileID == profile.id && $0.profileRevision == revision && $0.strengthAssessment != nil }
+        return notes.filter { note in
+            note.kind == .insight && note.profileID == profile.id && note.strengthAssessment != nil
+                && note.profileRevision.map { matchesProfileRevision($0, profile: profile) } == true
+        }
             .max { $0.updatedAt < $1.updatedAt }
+    }
+
+    private func matchesProfileRevision(_ revision: String, profile: BirthProfile) -> Bool {
+        // New analysis ignores presentation/reminder changes. Earlier Agent
+        // notes used a full profile revision; accept those only while that
+        // exact profile still matches, without rewriting an old receipt.
+        (try? profile.analysisRevision()) == revision || (try? AutomationSnapshot.revision(profile)) == revision
     }
 }

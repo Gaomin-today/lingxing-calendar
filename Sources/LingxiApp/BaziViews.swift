@@ -2,7 +2,7 @@ import SwiftUI
 import LingxiCore
 
 enum BaziPage: String, CaseIterable, Identifiable {
-    case natal = "我的命盘", luck = "大运流年", daily = "每日解读", almanac = "黄历时辰"
+    case natal = "我的命盘", luck = "大运流年", daily = "每日解读", hexagrams = "我的卦象", almanac = "黄历时辰"
     var id: String { rawValue }
 }
 
@@ -11,6 +11,7 @@ struct BaziWorkspaceView: View {
     @ObservedObject var profiles: BirthProfileStore
     @State private var editingProfile: BirthProfile?
     @State private var deletingProfile: BirthProfile?
+    @State private var profileMutationError: String?
     @State private var referenceHour = 12
     @State private var referenceMinute = 0
     private let engine = FourPillarsEngine()
@@ -32,6 +33,10 @@ struct BaziWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             heading.padding(.horizontal, 28).padding(.top, 22).padding(.bottom, 16)
+            if let profileMutationError {
+                errorText(profileMutationError).frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 28).padding(.bottom, 12)
+            }
             Picker("八字与日历内容", selection: $store.baziPage) {
                 ForEach(BaziPage.allCases) { Text($0.rawValue).tag($0) }
             }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 28).padding(.bottom, 16)
@@ -52,11 +57,15 @@ struct BaziWorkspaceView: View {
                     if let profile = profiles.activeProfile,
                        let charts = try? engine.natalCharts(for: profile), charts.count == 1,
                        let natal = charts.first, case .success(let flow) = daily {
-                        PersonalReadingView(natal: natal, flow: flow, strength: profile.strengthAssumption ?? .unspecified).id(profile.id)
+                        strengthCard(profile)
+                        PersonalReadingView(natal: natal, flow: flow, strength: store.strength(for: profile), strengthSource: store.strengthSource(for: profile)).id(profile.id)
                     } else {
                         Card { Text(profiles.activeProfile == nil ? "建立个人档案，让这一天的干支与你的日主联系起来。" : "出生资料或参考时刻尚未形成唯一命盘；请核对上面的提示，再查看个人解读。")
                             .font(.system(size: 12)).foregroundStyle(Theme.secondary) }
                     }
+                case .hexagrams:
+                    if let profile = profiles.activeProfile { PersonalHexagramsWorkspace(store: store, profile: profile) }
+                    else { Card { Text("建立出生档案后，可查看先天、后天与年月日卦。河洛卦需要完整出生时刻和排盘性别。") } }
                 case .almanac: AlmanacWorkspaceView(store: store)
                 }
                 HStack(alignment: .top, spacing: 10) {
@@ -76,7 +85,7 @@ struct BaziWorkspaceView: View {
         .sheet(item: $editingProfile) { BirthProfileEditor(profiles: profiles, draft: $0) }
         .confirmationDialog("删除出生档案？", isPresented: Binding(get: { deletingProfile != nil }, set: { if !$0 { deletingProfile = nil } })) {
             if let profile = deletingProfile {
-                Button("删除「\(profile.name)」", role: .destructive) { profiles.delete(profile); deletingProfile = nil }
+                Button("删除「\(profile.name)」", role: .destructive) { deleteProfile(profile) }
             }
         } message: { Text("删除后无法恢复。这不会影响你的日程。") }
     }
@@ -159,7 +168,7 @@ struct BaziWorkspaceView: View {
                         Spacer()
                         if let profile = profiles.activeProfile {
                             Button("编辑") { editingProfile = profile }.buttonStyle(QuietButton())
-                            Button("删除") { deletingProfile = profile }.buttonStyle(.plain).foregroundStyle(Theme.vermilion)
+                            Button("删除") { profileMutationError = nil; deletingProfile = profile }.buttonStyle(.plain).foregroundStyle(Theme.vermilion)
                         }
                     }.font(.system(size: 12))
                     if let profile = profiles.activeProfile {
@@ -171,6 +180,7 @@ struct BaziWorkspaceView: View {
     }
 
     @ViewBuilder private func natalContent(_ profile: BirthProfile) -> some View {
+        strengthCard(profile)
         let result = Result { try engine.natalCharts(for: profile) }
         switch result {
         case .failure(let error): Card { errorText(error.localizedDescription) }
@@ -201,9 +211,23 @@ struct BaziWorkspaceView: View {
         }
     }
 
+    private func strengthCard(_ profile: BirthProfile) -> some View {
+        StrengthAnalysisCard(store: store, profile: profile)
+    }
+
     private func profileDescription(_ profile: BirthProfile) -> String {
         let time = profile.birthTimeKnown ? String(format: "%02d:%02d", profile.birthHour, profile.birthMinute) : "时间不详"
         return "公历 \(profile.birthYear)年\(profile.birthMonth)月\(profile.birthDay)日 · \(time) · \(profile.timeZoneIdentifier)" + (profile.birthplace.isEmpty ? "" : " · \(profile.birthplace)")
+    }
+    private func deleteProfile(_ snapshot: BirthProfile) {
+        defer { deletingProfile = nil }
+        guard let current = profiles.profiles.first(where: { $0.id == snapshot.id }),
+              (try? AutomationSnapshot.revision(current)) == (try? AutomationSnapshot.revision(snapshot)) else {
+            profileMutationError = "这份档案已在别处修改或删除，未执行本次删除。请重新查看最新资料。"
+            return
+        }
+        if profiles.delete(snapshot) { profileMutationError = nil }
+        else { profileMutationError = profiles.error ?? "档案未删除，请重新查看后再试。" }
     }
     private func errorText(_ text: String) -> some View {
         Label(text, systemImage: "exclamationmark.circle").font(.system(size: 12)).foregroundStyle(Theme.vermilion).textSelection(.enabled)
@@ -278,8 +302,8 @@ struct DailyPillarsCard: View {
                     Text("\(chart.year.text)年 · \(chart.month.text)月 · \(chart.day.text)日")
                         .font(.system(size: 13, design: .serif)).foregroundStyle(Theme.jade)
                     Text("正午参考 · 年月按交节时刻切换").font(.system(size: 9)).foregroundStyle(Theme.secondary)
-                    if let natal = store.activeNatalChart,
-                       let report = try? PersonalDailyReadingEngine().analyze(natal: natal, flow: chart, strength: store.birthProfiles.activeProfile?.strengthAssumption ?? .unspecified),
+                    if let natal = store.activeNatalChart, let profile = store.birthProfiles.activeProfile,
+                       let report = try? PersonalDailyReadingEngine().analyze(natal: natal, flow: chart, strength: store.strength(for: profile)),
                        let day = report.periods.last {
                         Divider().overlay(Theme.line)
                         HStack(alignment: .firstTextBaseline) {

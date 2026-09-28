@@ -25,9 +25,19 @@ import LingxiAgent
         NSApp.setActivationPolicy(.regular)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1360, height: 880), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.title = "灵性日历"; window.titlebarAppearsTransparent = true; window.titleVisibility = .hidden
-        window.isReleasedWhenClosed = false; window.minSize = NSSize(width: 1180, height: 830)
+        window.isReleasedWhenClosed = false; window.minSize = NSSize(width: 1130, height: 720)
         window.contentView = NSHostingView(rootView: MainView(store: store).padding(.top, 22).background(Theme.paper))
-        window.setFrameAutosaveName("LingxingMainWindow"); window.center(); window.delegate = self
+        window.setFrameAutosaveName("LingxingMainWindow")
+        if !window.setFrameUsingName("LingxingMainWindow") { window.center() }
+        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
+            var frame = window.frame
+            frame.size.width = min(frame.width, visible.width)
+            frame.size.height = min(frame.height, visible.height)
+            frame.origin.x = min(max(frame.minX, visible.minX), visible.maxX - frame.width)
+            frame.origin.y = min(max(frame.minY, visible.minY), visible.maxY - frame.height)
+            window.setFrame(frame, display: false)
+        }
+        window.delegate = self
         mainWindow = window
         setupMenu()
         store.showMainAction = { [weak self] in self?.showMain() }
@@ -54,6 +64,13 @@ import LingxiAgent
         scheduleMenu.addItem(withTitle: "新建日程", action: #selector(newEvent), keyEquivalent: "n")
         scheduleMenu.addItem(withTitle: "和阿灵聊聊", action: #selector(openChat), keyEquivalent: "j")
         scheduleMenu.addItem(withTitle: "显示 / 隐藏桌面阿灵", action: #selector(togglePet), keyEquivalent: "")
+        let calendarMenu = NSMenu(title: "日历视图")
+        calendarMenu.addItem(withTitle: "年视图", action: #selector(showYearCalendar), keyEquivalent: "1")
+        calendarMenu.addItem(withTitle: "月视图", action: #selector(showMonthCalendar), keyEquivalent: "2")
+        calendarMenu.addItem(withTitle: "周视图", action: #selector(showWeekCalendar), keyEquivalent: "3")
+        calendarMenu.addItem(withTitle: "日视图", action: #selector(showDayCalendar), keyEquivalent: "4")
+        for item in calendarMenu.items { item.target = self; item.keyEquivalentModifierMask = [.command] }
+        let calendarItem = NSMenuItem(title: "日历视图", action: nil, keyEquivalent: ""); calendarItem.submenu = calendarMenu; scheduleMenu.addItem(calendarItem)
         for item in scheduleMenu.items { item.target = self }
         let scheduleItem = NSMenuItem(title: "日程", action: nil, keyEquivalent: ""); scheduleItem.submenu = scheduleMenu; menu.addItem(scheduleItem)
         let edit = NSMenu(title: "编辑"); edit.addItem(withTitle: "撤销", action: Selector(("undo:")), keyEquivalent: "z"); edit.addItem(withTitle: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x"); edit.addItem(withTitle: "复制", action: #selector(NSText.copy(_:)), keyEquivalent: "c"); edit.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v"); edit.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
@@ -61,6 +78,11 @@ import LingxiAgent
         NSApp.mainMenu = menu
     }
     @objc func newEvent() { showMain(); store.newEvent() }
+    @objc func showYearCalendar() { showCalendar(.year) }
+    @objc func showMonthCalendar() { showCalendar(.month) }
+    @objc func showWeekCalendar() { showCalendar(.week) }
+    @objc func showDayCalendar() { showCalendar(.day) }
+    private func showCalendar(_ mode: CalendarDisplayMode) { showMain(); store.section = "日历"; store.calendarMode = mode }
     private func configureAutomation() {
         automationServer?.stop(); automationServer = nil
         guard store.automationEnabled, let router = automationRouter else { store.automationStatus = "本机 CLI 访问已关闭"; return }

@@ -53,19 +53,29 @@ private struct TaskItemRow: View {
     var body: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                Button { store.toggleCompleted(task) } label: { Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.system(size: 20)).foregroundStyle(Theme.jade) }.buttonStyle(.plain).disabled(task.externalReadOnly == true).accessibilityLabel(task.isCompleted ? "恢复待办 \(task.title)" : "完成待办 \(task.title)")
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(task.title).font(.system(size: 13, weight: .medium)).strikethrough(task.isCompleted).foregroundStyle(task.isCompleted ? Theme.secondary : Theme.ink)
-                    HStack(spacing: 8) {
-                        Text(task.hasDueDate ? (task.taskDueHasTime == false ? DateText.day(task.start) : DateText.full(task.start)) : "不设截止日期")
-                        Text("·"); Text(task.sourceLabel)
-                    }.font(.system(size: 9)).foregroundStyle(Theme.secondary)
-                    if task.externalReadOnly == true { Text(task.externalReadOnlyReason ?? "此来源只可查看").font(.system(size: 9)).foregroundStyle(Theme.secondary) }
-                }
-                Spacer(minLength: 0)
+                Button { store.toggleCompleted(task) } label: {
+                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20)).foregroundStyle(Theme.jade).frame(width: 32, height: 32).contentShape(Rectangle())
+                }.buttonStyle(.plain).disabled(task.externalReadOnly == true).accessibilityLabel(task.isCompleted ? "恢复待办 \(task.title)" : "完成待办 \(task.title)")
+                Button { store.editorEvent = task } label: {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(task.title).font(.system(size: 13, weight: .medium)).strikethrough(task.isCompleted).foregroundStyle(task.isCompleted ? Theme.secondary : Theme.ink)
+                        HStack(spacing: 8) {
+                            Text(task.hasDueDate ? (task.taskDueHasTime == false ? DateText.day(task.start) : DateText.full(task.start)) : "不设截止日期")
+                            Text("·"); Text(task.sourceLabel)
+                        }.font(.system(size: 9)).foregroundStyle(Theme.secondary)
+                        if task.externalReadOnly == true { Text(task.externalReadOnlyReason ?? "此来源只可查看").font(.system(size: 9)).foregroundStyle(Theme.secondary) }
+                    }.frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityLabel("\(task.externalReadOnly == true ? "查看" : "编辑")待办 \(task.title)")
                 VStack(alignment: .trailing, spacing: 8) {
-                    Button(task.externalReadOnly == true ? "查看" : "编辑") { store.editorEvent = task }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.jade)
-                    if !task.isCompleted { Button("安排时间") { store.scheduleTask(task) }.buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(Theme.secondary) }
+                    Button { store.editorEvent = task } label: {
+                        Text(task.externalReadOnly == true ? "查看" : "编辑").font(.system(size: 11)).padding(.horizontal, 7).frame(minHeight: 28).contentShape(Rectangle())
+                    }.buttonStyle(.plain).foregroundStyle(Theme.jade)
+                    if !task.isCompleted {
+                        Button { store.scheduleTask(task) } label: {
+                            Text("安排时间").font(.system(size: 10)).padding(.horizontal, 7).frame(minHeight: 28).contentShape(Rectangle())
+                        }.buttonStyle(.plain).foregroundStyle(Theme.secondary)
+                    }
                 }
             }
         }

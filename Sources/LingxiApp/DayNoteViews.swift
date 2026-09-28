@@ -7,10 +7,10 @@ struct DayNotesWorkspace: View {
     @State private var allDates = false
     @State private var query = ""
     private var entries: [DayNote] {
-        store.dayNotes.notes.filter {
-            (allDates || $0.date == DateText.format(store.selectedDate, "yyyy-MM-dd")) &&
-            (store.birthProfiles.activeID == nil || $0.profileID == nil || $0.profileID == store.birthProfiles.activeID) &&
-            (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query) || $0.body.localizedCaseInsensitiveContains(query))
+        store.dayNotes.notes.filter { note in
+            (allDates || note.date == DateText.format(store.selectedDate, "yyyy-MM-dd")) &&
+            (store.birthProfiles.activeID == nil || note.profileID == nil || note.profileID == store.birthProfiles.activeID || !store.birthProfiles.profiles.contains(where: { $0.id == note.profileID })) &&
+            (query.isEmpty || note.title.localizedCaseInsensitiveContains(query) || note.body.localizedCaseInsensitiveContains(query))
         }.sorted { $0.updatedAt > $1.updatedAt }
     }
     var body: some View {
@@ -50,7 +50,10 @@ struct DayNotesWorkspace: View {
                         }
                     }.padding(.bottom, 24)
                 }.onAppear { if let id = store.highlightedNoteID { proxy.scrollTo(id, anchor: .top) } }
-                    .onChange(of: store.highlightedNoteID) { _, id in if let id { proxy.scrollTo(id, anchor: .top) } }
+                    .onChange(of: store.highlightedNoteID) { _, id in
+                        query = ""
+                        if let id { proxy.scrollTo(id, anchor: .top) }
+                    }
             }
         }.padding(28).sheet(item: $editing) { DayNoteEditor(store: store, note: $0) }
     }
@@ -64,6 +67,8 @@ struct DayNoteCard: View {
     let note: DayNote
     var edit: () -> Void
     @State private var deleting = false
+    @State private var deletionSnapshot: DayNote?
+    @State private var deletionError: String?
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
@@ -73,7 +78,7 @@ struct DayNoteCard: View {
                     Spacer()
                     Text(note.source == .agent ? (note.author ?? "Agent") + " · 写入" : "自己记录").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     Button("编辑", action: edit).buttonStyle(.plain).font(.system(size: 11))
-                    Button { deleting = true } label: { Image(systemName: "trash") }.buttonStyle(.plain).foregroundStyle(Theme.secondary).accessibilityLabel("删除日笺\(note.title)")
+                    Button { deletionError = nil; deletionSnapshot = note; deleting = true } label: { Image(systemName: "trash") }.buttonStyle(.plain).foregroundStyle(Theme.secondary).accessibilityLabel("删除日笺\(note.title)")
                 }
                 Text(note.title).font(.system(size: 21, weight: .medium, design: .serif)).textSelection(.enabled)
                 if store.dayNotes.isStale(note, profiles: store.birthProfiles.profiles) {
@@ -83,11 +88,23 @@ struct DayNoteCard: View {
                 if let strength = note.strengthAssessment { Pill(text: "Agent 分析 · " + strength.label) }
                 Text(note.body).font(.system(size: 13)).lineSpacing(5).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
                 Text("更新于 " + DateText.full(note.updatedAt)).font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                if let deletionError { Text(deletionError).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }
             }
         }.overlay(RoundedRectangle(cornerRadius: 14).stroke(store.highlightedNoteID == note.id ? Theme.jade : .clear, lineWidth: 1))
             .confirmationDialog("删除这篇日笺？", isPresented: $deleting) {
-                Button("删除「\(note.title)」", role: .destructive) { _ = store.dayNotes.delete(note) }
+                Button("删除「\(deletionSnapshot?.title ?? note.title)」", role: .destructive, action: deleteConfirmedSnapshot)
             } message: { Text("只删除这篇内容，不影响命盘和日程。") }
+    }
+    private func deleteConfirmedSnapshot() {
+        guard let snapshot = deletionSnapshot else { return }
+        defer { deletionSnapshot = nil }
+        guard let current = store.dayNotes.notes.first(where: { $0.id == snapshot.id }),
+              (try? AutomationSnapshot.revision(current)) == (try? AutomationSnapshot.revision(snapshot)) else {
+            deletionError = "这篇日笺已在别处修改或删除，未执行本次删除。请重新查看最新内容。"
+            return
+        }
+        if store.dayNotes.delete(snapshot) { deletionError = nil }
+        else { deletionError = store.dayNotes.error ?? "日笺未删除，请重新查看后再试。" }
     }
 }
 
@@ -97,12 +114,12 @@ struct DayNoteEditor: View {
     @State private var draft: DayNote
     @State private var date: Date
     @State private var error: String?
-    private let originalRevision: String?
+    @State private var originalRevision: String?
     init(store: AppStore, note: DayNote) {
         self.store = store; _draft = State(initialValue: note)
         let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"; formatter.timeZone = store.calendar.gregorian.timeZone
         _date = State(initialValue: formatter.date(from: note.date) ?? store.selectedDate)
-        originalRevision = store.dayNotes.notes.contains(where: { $0.id == note.id }) ? try? AutomationSnapshot.revision(note) : nil
+        _originalRevision = State(initialValue: store.dayNotes.notes.contains(where: { $0.id == note.id }) ? try? AutomationSnapshot.revision(note) : nil)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 17) {
@@ -127,7 +144,7 @@ struct DayNoteEditor: View {
         let current = store.dayNotes.notes.first { $0.id == draft.id }
         guard (try? current.map(AutomationSnapshot.revision)) == originalRevision else { error = "这篇日笺已在别处修改或删除，请关闭并重新打开后编辑。"; return }
         draft.date = DateText.format(date, "yyyy-MM-dd"); draft.source = .user; draft.author = nil; draft.strengthAssessment = nil; draft.updatedAt = Date()
-        if let person = store.birthProfiles.profiles.first(where: { $0.id == draft.profileID }) { draft.profileRevision = try? AutomationSnapshot.revision(person) }
+        if let person = store.birthProfiles.profiles.first(where: { $0.id == draft.profileID }) { draft.profileRevision = try? person.analysisRevision() }
         else { draft.profileRevision = nil }
         if store.dayNotes.save(draft) { dismiss() } else { error = store.dayNotes.error }
     }
