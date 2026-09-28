@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import LingxiCore
+import LingxiAgent
 
 @main enum LingxingApp {
     @MainActor static func main() {
@@ -43,6 +44,14 @@ import LingxiCore
         store.showPetAction = { [weak self] in self?.updatePet() }
         store.showChatAction = { [weak self] in self?.openChat() }
         automationRouter = AppAutomationRouter(store: store)
+        if let router = automationRouter {
+            store.configureAgentTools(
+                TypedToolRegistry(provider: AppAutomationToolProvider(router: router)),
+                cloudTools: AppAutomationToolProvider(router: router, cloudOnly: true).registry)
+            store.configureAgentActions { request in
+                await router.handleAgentMutation(request)
+            }
+        }
         store.automationSettingsChanged = { [weak self] in self?.configureAutomation() }
         configureAutomation()
         showMain(); updatePet()

@@ -2,6 +2,8 @@ import Foundation
 import Combine
 import LingxiCore
 
+/// Shared by local CLI and typed Agent reads. Legacy folder registrations
+/// migrate to disabled collections; reads never imply permission or execute files.
 @MainActor final class KnowledgeLibrary: ObservableObject {
     static let shared = KnowledgeLibrary()
     @Published private(set) var collections: [KnowledgeCollection]

@@ -6,10 +6,11 @@
 
 ## 检查内容
 
-1. `scripts/test.sh`：Core 和 CLI 单元测试。Socket 测试使用临时的合成数据和专用 Unix socket。
+1. `scripts/test.sh`：Core、CLI、Agent 和应用组件测试。Socket 测试使用临时的合成数据和专用 Unix socket；DeepSeek 真实网络测试缺少显式进程内凭据时自动跳过，CI 不提供该凭据。
 2. `scripts/test-apple-codec.sh`：编译真实 EventKit 日期桥接代码，只执行纯日期转换检查；不会建立 `EKEventStore` 或请求用户日历权限。
-3. `scripts/build-app.sh`：Release 应用、CLI、配套 Skill 和知识资源打包。
-4. 验证 Info.plist、必需资源以及 CLI 和应用的 ad-hoc 签名。签名通过不等于已完成 Apple 公证或 Developer ID 分发签名。
+3. `scripts/test-profile-store.sh`：用临时合成档案检查磁盘版本冲突保护，不读取真实档案。
+4. `scripts/build-app.sh`：Release 应用、CLI、配套 Skill 和知识资源打包。
+5. 验证 Info.plist、必需资源以及 CLI 和应用的 ad-hoc 签名。签名通过不等于已完成 Apple 公证或 Developer ID 分发签名。
 
 不在无人值守 CI 中运行 `test-cli-integration.py`，该检查需要已启动的隔离预览应用及原生窗口环境。GUI 操作、通知权限弹窗、真实 Apple 日历连接仍属于本地验收范围。
 

@@ -26,6 +26,19 @@ struct CLIArgumentsTests {
         #expect(throws: AutomationTransportError.self) { try parse(["events", "create", "--request-id", " "]) }
     }
 
+    @Test func expandedReadRoutesAndKnowledgePurposeRemainStructured() throws {
+        let strength = try parse(["strength", "show", "--profile", "synthetic-profile"])
+        #expect(strength.request?.method == "strength.show")
+        let hexagrams = try parse(["hexagrams", "show", "--profile", "synthetic-profile", "--date", "2026-09-28", "--at", "12:00"])
+        #expect(hexagrams.request?.method == "hexagrams.show")
+        #expect(hexagrams.request?.params["at"] == .string("12:00"))
+        let search = try parse(["knowledge", "search", "--query", "测试词语", "--purpose", "合成回归核对资料"])
+        #expect(search.request?.params["purpose"] == .string("合成回归核对资料"))
+        let read = try parse(["knowledge", "read", "--id", "excerpt-synthetic", "--purpose", "合成回归核对资料", "--offset", "800"])
+        #expect(read.request?.params["purpose"] == .string("合成回归核对资料"))
+        #expect(read.request?.params["offset"] == .number(800))
+    }
+
     @Test func jsonInputMergesOnlyDistinctKeysAndPreservesTypes() throws {
         let result = try parse(["events", "create", "--request-id", "new-1", "--input", "-", "--profile", "p", "--param", "enabled=true"], json: "{\"event\":{\"title\":\"面试\",\"isTask\":false}}")
         #expect(result.request?.params["event"]?["isTask"] == .bool(false))

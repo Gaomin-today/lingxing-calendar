@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import LingxiCore
+import LingxiAgent
 
 struct EventEditor: View {
     @ObservedObject var store: AppStore
@@ -194,12 +195,19 @@ struct ChatView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var input = ""
     @State private var editingDraft: CalendarEvent?
+    @State private var qualityPresentation: QualityPresentation?
+    private struct QualityPresentation: Identifiable {
+        let id = UUID()
+        let runID: String?
+    }
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 SpiritView(size: 46)
                 VStack(alignment: .leading, spacing: 5) { Text("阿灵").font(.system(size: 18, weight: .medium, design: .serif)); Text(store.cloudEnabled ? "AI 对话 · 日程指令在本地处理" : "本地助手 · 无需联网").font(.system(size: 10)).foregroundStyle(Theme.secondary) }
                 Spacer()
+                Button("依据与质量") { qualityPresentation = QualityPresentation(runID: nil) }
+                    .font(.system(size: 10)).buttonStyle(QuietButton())
                 if isSheet { Button { dismiss() } label: { Image(systemName: "xmark") }.buttonStyle(.plain) }
             }.padding(20)
             HStack { Image(systemName: "calendar"); Text("正在聊：\(DateText.day(store.selectedDate))"); Spacer(); Text("北京时间") }.font(.system(size: 10)).foregroundStyle(Theme.jade).padding(.horizontal, 20).padding(.vertical, 10).background(Theme.softJade.opacity(0.7))
@@ -207,11 +215,7 @@ struct ChatView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         ForEach(store.messages) { message in
-                            HStack {
-                                if message.isUser { Spacer(minLength: 40) }
-                                Text(message.text).font(.system(size: 12)).lineSpacing(5).textSelection(.enabled).padding(14).background(message.isUser ? Theme.softJade : Theme.card, in: RoundedRectangle(cornerRadius: 13)).overlay(RoundedRectangle(cornerRadius: 13).stroke(Theme.line.opacity(0.55), lineWidth: 1))
-                                if !message.isUser { Spacer(minLength: 20) }
-                            }.id(message.id)
+                            messageBubble(message).id(message.id)
                         }
                         if let draft = store.draft {
                             Card { VStack(alignment: .leading, spacing: 12) {
@@ -221,10 +225,74 @@ struct ChatView: View {
                                 Text("保存到：\(store.destinationLabel(store.defaultDestination(isTask: false), isTask: false))").font(.system(size: 10)).foregroundStyle(Theme.jade)
                                 if store.defaultDestination(isTask: false) == "local" { Text("本地日程不会写入 Apple；可点“修改”选择 Apple 保存位置。").font(.system(size: 10)).foregroundStyle(Theme.secondary) }
                                 Text("\(draft.durationMinutes) 分钟 · \(EventRepeat(rawValue: draft.repeatRule)?.label ?? "不重复") · \(draft.reminderMinutes < 0 ? "不提醒" : "提前 \(draft.reminderMinutes) 分钟提醒")").font(.system(size: 10)).foregroundStyle(Theme.secondary)
-                                HStack { Button("加入日历") { if let conflict = store.confirmDraft() { editingDraft = conflict } }.buttonStyle(JadeButton()); Button("修改") { editingDraft = CalendarEvent(title: draft.title, start: draft.start, end: draft.start.addingTimeInterval(Double(draft.durationMinutes * 60)), notes: draft.notes, repeatRule: EventRepeat(rawValue: draft.repeatRule) ?? .none, reminderMinutes: draft.reminderMinutes < 0 ? nil : draft.reminderMinutes) }.buttonStyle(QuietButton()); Button("取消") { store.draft = nil }.buttonStyle(.plain).font(.system(size: 11)) }
+                                HStack { Button("加入日历") { Task { if let conflict = await store.confirmDraftWithJournal() { editingDraft = conflict } } }.buttonStyle(JadeButton()).disabled(store.agentActionInFlight); Button("修改") { editingDraft = CalendarEvent(title: draft.title, start: draft.start, end: draft.start.addingTimeInterval(Double(draft.durationMinutes * 60)), notes: draft.notes, repeatRule: EventRepeat(rawValue: draft.repeatRule) ?? .none, reminderMinutes: draft.reminderMinutes < 0 ? nil : draft.reminderMinutes) }.buttonStyle(QuietButton()); Button("取消") { store.draft = nil }.buttonStyle(.plain).font(.system(size: 11)) }
                             } }.id("draft")
                         }
-                        if store.isThinking { HStack { ProgressView().controlSize(.small); Text("阿灵正在想一想…").font(.system(size: 11)).foregroundStyle(Theme.secondary) }.id("thinking") }
+                        if store.isThinking || !store.agentStatuses.isEmpty {
+                            Card {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack(spacing: 8) {
+                                        if store.isThinking { ProgressView().controlSize(.small) }
+                                        Image(systemName: store.isThinking ? "sparkles" : "checkmark.circle")
+                                            .foregroundStyle(store.isThinking ? Theme.jade : Theme.secondary)
+                                        if let phase = store.agentPhase {
+                                            Text(agentPhaseLabel(phase))
+                                                .font(.system(size: 9, weight: .medium))
+                                                .foregroundStyle(Theme.jade)
+                                        }
+                                        Text(store.agentStatusMessage ?? (store.isThinking ? "阿灵正在想一想…" : "本轮解读已完成"))
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(Theme.secondary)
+                                        Spacer()
+                                        if store.isThinking {
+                                            Button("停止") { store.stopAgent() }
+                                                .font(.system(size: 10, weight: .medium))
+                                                .buttonStyle(QuietButton())
+                                                .foregroundStyle(Theme.vermilion)
+                                        }
+                                    }
+                                    if !store.agentStatuses.isEmpty {
+                                        Text(store.agentStatuses.map(\.message).joined(separator: "  ·  "))
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(Theme.secondary)
+                                            .lineLimit(2)
+                                    }
+                                    if !store.isThinking && store.agentEvidenceCount > 0 {
+                                        Text("已读取 \(store.agentEvidenceCount) 项来源，可在回答下方查看引用校验")
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(Theme.jade)
+                                    }
+                                }
+                            }.id("agent-progress")
+                        }
+                        if let action = store.pendingAgentAction {
+                            Card {
+                                VStack(alignment: .leading, spacing: 9) {
+                                    HStack {
+                                        Image(systemName: "arrow.down.doc").foregroundStyle(Theme.jade)
+                                        Text("待确认写入").font(.system(size: 12, weight: .medium))
+                                        Spacer()
+                                    }
+                                    Text(action.title).font(.system(size: 13, weight: .medium))
+                                    Text(action.summary).font(.system(size: 10)).foregroundStyle(Theme.secondary)
+                                    HStack {
+                                        Button("确认保存") { store.confirmAgentAction() }.buttonStyle(JadeButton()).disabled(store.agentActionInFlight)
+                                        Button("取消") { store.cancelAgentAction() }.buttonStyle(QuietButton()).disabled(store.agentActionInFlight)
+                                    }
+                                }
+                            }.id("agent-action")
+                        }
+                        if let receipt = store.agentActionReceipt {
+                            Card {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "checkmark.circle").foregroundStyle(Theme.jade)
+                                    Text("本地写入已验证").font(.system(size: 10, weight: .medium))
+                                    if let revision = receipt.revision { Text(String(revision.prefix(8))).font(.system(size: 9, design: .monospaced)).foregroundStyle(Theme.secondary) }
+                                    Spacer()
+                                    Button("撤销") { store.undoAgentAction() }.buttonStyle(QuietButton()).disabled(store.agentActionInFlight)
+                                }
+                            }.id("agent-receipt")
+                        }
                         Color.clear.frame(height: 1).id("bottom")
                     }.padding(20)
                 }.onChange(of: store.messages.count) { _, _ in withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
@@ -242,8 +310,42 @@ struct ChatView: View {
             Text("民俗与自我探索，不承诺预测结果").font(.system(size: 9)).foregroundStyle(Theme.secondary).padding(12)
         }.frame(width: 470, height: 650).background(Theme.paper).foregroundStyle(Theme.ink).preferredColorScheme(.light)
             .sheet(item: $editingDraft, onDismiss: { store.draft = nil }) { EventEditor(store: store, event: $0) }
+            .sheet(item: $qualityPresentation) { presentation in
+                AgentQualityView(store: store.agentQuality, initialRunID: presentation.runID)
+            }
+    }
+    private func messageBubble(_ message: ChatMessage) -> some View {
+        HStack {
+            if message.isUser { Spacer(minLength: 40) }
+            VStack(alignment: .leading, spacing: 9) {
+                Text(message.text).font(.system(size: 12)).lineSpacing(5).textSelection(.enabled)
+                if let runID = message.agentRunID {
+                    Button("查看依据与校验") { qualityPresentation = QualityPresentation(runID: runID) }
+                        .font(.system(size: 10)).buttonStyle(QuietButton())
+                }
+            }
+            .padding(14)
+            .background(message.isUser ? Theme.softJade : Theme.card, in: RoundedRectangle(cornerRadius: 13))
+            .overlay(RoundedRectangle(cornerRadius: 13).stroke(Theme.line.opacity(0.55), lineWidth: 1))
+            if !message.isUser { Spacer(minLength: 20) }
+        }
     }
     private func send() { let message = input; input = ""; store.send(message) }
+    private func agentPhaseLabel(_ phase: AgentPhase) -> String {
+        switch phase {
+        case .classify: return "分类"
+        case .loadSkill: return "读取 Skill"
+        case .planEvidence: return "规划依据"
+        case .retrieve: return "读取资料"
+        case .draft: return "整理初稿"
+        case .deterministicCheck: return "校验依据"
+        case .critic: return "复核"
+        case .repair: return "补读"
+        case .final: return "完成"
+        case .failed: return "未完成"
+        case .cancelled: return "已停止"
+        }
+    }
 }
 
 struct SettingsView: View {
@@ -255,6 +357,8 @@ struct SettingsView: View {
     @State private var endpoint = ""
     @State private var modelName = ""
     @State private var includeSystemData = false
+    @State private var showingAgentConfiguration = false
+    @State private var showingAgentQuality = false
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack { Text("让陪伴恰到好处").font(.system(size: 24, weight: .medium, design: .serif)); Spacer(); Button { dismiss() } label: { Image(systemName: "xmark") }.buttonStyle(.plain) }
@@ -271,7 +375,7 @@ struct SettingsView: View {
                         HStack { Text("可选 AI 对话").font(.system(size: 13, weight: .semibold)); Spacer(); Pill(text: "自行配置") }
                         Toggle("启用远程 AI 对话", isOn: $cloudEnabled)
                         Toggle("向 AI 提供已选 Apple 来源的事项标题", isOn: $includeSystemData)
-                        Text("使用兼容 Chat Completions 的服务。发送消息时，会将最近 12 条聊天、选中日期和本地日程标题发送至你填写的服务。仅开启上方选项时才提供系统来源上下文。日程写入仍在本地确认。").font(.system(size: 10)).foregroundStyle(Theme.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text("使用兼容 Chat Completions 的服务。发送消息时，会将阿灵配置、最近 12 条聊天、选中日期和本地日程标题发送至你填写的服务。仅开启上方选项时才提供系统来源上下文。日程写入仍在本地确认。").font(.system(size: 10)).foregroundStyle(Theme.secondary).fixedSize(horizontal: false, vertical: true)
                         TextField("完整 HTTPS 地址，例如 https://你的服务/v1/chat/completions", text: $endpoint).textFieldStyle(.roundedBorder)
                         TextField("模型名称", text: $modelName).textFieldStyle(.roundedBorder)
                         SecureField("API 密钥（留空保留已有值）", text: $key).textFieldStyle(.roundedBorder)
@@ -284,11 +388,29 @@ struct SettingsView: View {
                         Button("在 Finder 中查看本地数据") { NSWorkspace.shared.activateFileViewerSelecting([store.repository.fileURL]) }.buttonStyle(QuietButton()).font(.system(size: 11))
                         Text("民用日历采用 Asia/Shanghai 时区，农历年干支正月初一换年、日干支零点换日。节气与四柱支持 1901–2099 年；黄历采用固定版本的传统规则，详见“历法与资料说明”。").font(.system(size: 10)).foregroundStyle(Theme.secondary)
                     } }
+                    Card { VStack(alignment: .leading, spacing: 11) {
+                        HStack { Text("阿灵配置").font(.system(size: 13, weight: .semibold)); Spacer(); Pill(text: "四份文档") }
+                        Text("调整阿灵的语气、工作习惯、你的偏好与聊天方法。可查看生效预览、编辑并保存版本，也可从历史版本载入草稿。")
+                            .font(.system(size: 11)).foregroundStyle(Theme.secondary).fixedSize(horizontal: false, vertical: true)
+                        Button("编辑阿灵配置") { showingAgentConfiguration = true }.buttonStyle(QuietButton()).font(.system(size: 11))
+                    } }
+                    Card { VStack(alignment: .leading, spacing: 10) {
+                        Text("依据与质量").font(.system(size: 13, weight: .semibold))
+                        Text("查看最近回答的来源、版本和校验结果，或运行本机固定评测。记录只保留在本次运行中。")
+                            .font(.system(size: 11)).foregroundStyle(Theme.secondary).fixedSize(horizontal: false, vertical: true)
+                        Button("打开依据与质量") { showingAgentQuality = true }.buttonStyle(QuietButton()).font(.system(size: 11))
+                    } }
                 }
             }
             HStack { if let feedback { Text(feedback).font(.system(size: 11)).foregroundStyle(Theme.vermilion) }; Spacer(); Button("保存设置") { do { try store.saveSettings(enabled: cloudEnabled, endpoint: endpoint, model: modelName, key: key); store.cloudIncludeSystemData = includeSystemData; UserDefaults.standard.set(includeSystemData, forKey: "cloudIncludeSystemData"); dismiss() } catch { feedback = error.localizedDescription } }.buttonStyle(JadeButton()) }
         }.padding(28).frame(width: 570, height: 740).background(Theme.paper).foregroundStyle(Theme.ink).preferredColorScheme(.light)
         .onAppear { cloudEnabled = store.cloudEnabled; endpoint = store.endpoint; modelName = store.modelName; includeSystemData = store.cloudIncludeSystemData }
+        .sheet(isPresented: $showingAgentConfiguration) {
+            AgentConfigurationView(store: store.agentConfiguration, appStore: store)
+        }
+        .sheet(isPresented: $showingAgentQuality) {
+            AgentQualityView(store: store.agentQuality)
+        }
     }
 }
 

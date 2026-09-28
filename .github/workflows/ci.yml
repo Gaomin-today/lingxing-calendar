@@ -37,7 +37,7 @@ jobs:
           xcodebuild -version
           swift --version
 
-      - name: Run core and CLI unit tests
+      - name: Run Core, CLI, Agent and app unit tests
         run: zsh scripts/test.sh
 
       - name: Verify Apple date conversion without calendar access

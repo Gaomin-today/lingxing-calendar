@@ -42,6 +42,45 @@ struct AutomationRouteError: Error {
         }
     }
 
+    /// The in-app Agent uses a separate, fixed read-only adapter. Its access
+    /// must not depend on the user-facing toggle for external CLI clients.
+    /// The adapter still rejects mutation routes before reaching this method.
+    func handleAgentRead(_ request: AutomationRequest) async -> AutomationResponse {
+        do {
+            guard request.version == 1 else { throw problem("unsupported_version", "只支持协议 version 1。") }
+            guard let params = request.params.objectValue else { throw problem("invalid_params", "params 必须是 JSON 对象。") }
+            guard !Self.mutations.contains(request.method), !request.method.hasPrefix("open.") else { throw problem("read_only", "内置 Agent 只允许读取，不能写入记录或操作界面。") }
+            return .success(request: request, result: try await read(request.method, params))
+        } catch let error as AutomationRouteError {
+            return .failure(request: request, code: error.code, message: error.message, details: error.details)
+        } catch let error as KnowledgeAccessError {
+            return .failure(request: request, code: error.code, message: error.message)
+        } catch {
+            return .failure(request: request, code: "invalid_request", message: error.localizedDescription)
+        }
+    }
+
+    /// Runs one already-confirmed local mutation for the in-app Agent. The
+    /// external CLI toggle is deliberately separate from this path; the UI
+    /// owns the confirmation and this method still enforces the journal,
+    /// revision and post-write verification in `mutate`.
+    func handleAgentMutation(_ request: AutomationRequest) async -> AutomationResponse {
+        do {
+            guard request.version == 1 else { throw problem("unsupported_version", "只支持协议 version 1。") }
+            guard request.params.objectValue != nil else { throw problem("invalid_params", "params 必须是 JSON 对象。") }
+            guard Self.mutations.contains(request.method) else { throw problem("write_not_allowed", "内置 Agent 只允许写入受支持的本地记录。") }
+            return try mutate(request, params: request.params.objectValue!)
+        } catch let error as AutomationRouteError {
+            return .failure(request: request, code: error.code, message: error.message, details: error.details)
+        } catch let error as KnowledgeAccessError {
+            return .failure(request: request, code: error.code, message: error.message)
+        } catch let error as AutomationMutationJournalError {
+            return .failure(request: request, code: error == .requestIDConflict ? "request_id_conflict" : "receipt_error", message: error.localizedDescription)
+        } catch {
+            return .failure(request: request, code: "invalid_request", message: error.localizedDescription)
+        }
+    }
+
     private func read(_ method: String, _ p: [String: JSONValue]) async throws -> JSONValue {
         switch method {
         case "status":

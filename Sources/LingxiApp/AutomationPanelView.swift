@@ -7,6 +7,8 @@ struct AutomationPanelView: View {
     @ObservedObject private var knowledge = KnowledgeLibrary.shared
     @Environment(\.dismiss) private var dismiss
     @State private var feedback: String?
+    @State private var showingAgentConfiguration = false
+    @State private var showingAgentQuality = false
     private var cliPath: String { Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/lingxi").path }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -23,11 +25,22 @@ struct AutomationPanelView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Toggle("允许本机 CLI 访问", isOn: Binding(get: { store.automationEnabled }, set: { store.setAutomationEnabled($0) }))
                             Text(store.automationStatus).font(.system(size: 12)).foregroundStyle(Theme.jade)
-                            Text("仅这台 Mac 当前登录用户的进程可连接。关掉主窗口仍可使用；完全退出应用后 CLI 会提示重新打开。外部 Agent 只调用你授权的任务，应用不内置新的模型或后台 Agent。").font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
+                            Text("仅这台 Mac 当前登录用户的进程可连接。关掉主窗口仍可使用；完全退出应用后 CLI 会提示重新打开。请在自己的 Agent 中确认任务授权；应用内阿灵的远程模型在偏好设置中另行配置。").font(.system(size: 11)).foregroundStyle(Theme.secondary).lineSpacing(4)
                             Text(cliPath).font(.system(size: 10, design: .monospaced)).textSelection(.enabled).lineLimit(nil)
                             HStack {
                                 Button("复制测试命令") { copy("\"" + cliPath + "\"" + (store.isPreviewMode ? " --preview" : "") + " status") }
                                 Button("复制 CLI 路径") { copy(cliPath) }
+                            }.buttonStyle(QuietButton()).font(.system(size: 11))
+                        }
+                    }
+                    Card {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("应用内阿灵").font(.system(size: 15, weight: .medium))
+                            Text("编辑阿灵的语气、工作习惯与偏好，查看每次回答的来源和版本校验，或运行本机固定评测。阿灵提出的本地写入会先请你确认，保存后提供可撤销回执。")
+                                .font(.system(size: 12)).foregroundStyle(Theme.secondary).lineSpacing(4)
+                            HStack {
+                                Button("编辑阿灵配置") { showingAgentConfiguration = true }
+                                Button("查看依据与质量") { showingAgentQuality = true }
                             }.buttonStyle(QuietButton()).font(.system(size: 11))
                         }
                     }
@@ -90,6 +103,12 @@ struct AutomationPanelView: View {
             }
             HStack { if let feedback { Text(feedback).font(.system(size: 11)).foregroundStyle(Theme.jade) }; Spacer(); Button("完成") { dismiss() }.buttonStyle(JadeButton()) }
         }.padding(27).frame(width: 720, height: 740).background(Theme.paper)
+        .sheet(isPresented: $showingAgentConfiguration) {
+            AgentConfigurationView(store: store.agentConfiguration, appStore: store)
+        }
+        .sheet(isPresented: $showingAgentQuality) {
+            AgentQualityView(store: store.agentQuality)
+        }
     }
     private func copy(_ value: String) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(value, forType: .string); feedback = "已复制" }
     private func addFolder() {
